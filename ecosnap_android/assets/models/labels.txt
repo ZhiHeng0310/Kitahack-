@@ -1,0 +1,9 @@
+Clothing:Fabric:Clean
+Clothing:Fabric:Damaged
+Food Cans:Aluminum:Clean
+Food Waste:Organic:Contaminated
+Magazine:Paper:Clean
+Newspaper:Paper:Clean
+Plastic Bag:Plastic:Clean
+Plastic Bottle:Plastic:Clean
+Styrofoam:Plastic:Clean
