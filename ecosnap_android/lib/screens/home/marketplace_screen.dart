@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../../services/database_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import 'marketplace/create_product_screen.dart';
+import 'marketplace/product_detail_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -33,7 +36,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // Navigate to create product screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateProductScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -104,7 +112,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: () {
-                            // Navigate to create product
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CreateProductScreen(),
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.add),
                           label: const Text('List Your Item'),
@@ -149,7 +162,12 @@ class _ProductCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Navigate to product details
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: product),
+            ),
+          );
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,17 +178,17 @@ class _ProductCard extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 color: Colors.grey[200],
-                child: product.imageUrls.isNotEmpty
-                    ? Image.network(
-                        product.imageUrls.first,
+                child: product.imageUrls.isNotEmpty &&
+                        File(product.imageUrls.first).existsSync()
+                    ? Image.file(
+                        File(product.imageUrls.first),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.image,
-                          size: 40,
-                          color: Colors.grey,
-                        ),
                       )
-                    : const Icon(Icons.image, size: 40, color: Colors.grey),
+                    : const Icon(
+                        Icons.image,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
               ),
             ),
             

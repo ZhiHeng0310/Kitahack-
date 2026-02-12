@@ -11,15 +11,16 @@ class DatabaseService {
   // Save scan result
   Future<void> saveScanResult(ScanResult result) async {
     try {
-      await _firestore
-          .collection('scan_results')
-          .doc(result.id)
-          .set(result.toMap());
+      await _firestore.collection('scan_results').add({
+        ...result.toMap(),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       print('Error saving scan result: $e');
       rethrow;
     }
   }
+
 
   // Get user's scan history
   Stream<List<ScanResult>> getUserScanHistory(String userId) {
@@ -37,14 +38,16 @@ class DatabaseService {
 
   // Create product listing
   Future<void> createProduct(Product product) async {
-    try {
-      await _firestore
-          .collection('products')
-          .doc(product.id)
-          .set(product.toMap());
-    } catch (e) {
-      print('Error creating product: $e');
-      rethrow;
+  try {
+    await _firestore
+        .collection('products')
+        .doc(product.id)
+        .set(product.toMap(), SetOptions(merge: false)); // Ensure full write
+    
+    print('Product created successfully: ${product.id}');
+  } catch (e) {
+    print('Error creating product: $e');
+    rethrow;
     }
   }
 
@@ -62,16 +65,16 @@ class DatabaseService {
 
   // Get products by category
   Stream<List<Product>> getProductsByCategory(String category) {
-    return _firestore
-        .collection('products')
-        .where('category', isEqualTo: category)
-        .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Product.fromMap(doc.data()))
-            .toList());
-  }
+  return _firestore
+      .collection('products')
+      .where('category', isEqualTo: category)
+      .where('isActive', isEqualTo: true)
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => Product.fromMap(doc.data()))
+          .toList());
+    }
 
   // Get user's products
   Stream<List<Product>> getUserProducts(String userId) {
@@ -104,9 +107,10 @@ class DatabaseService {
       await _firestore
           .collection('products')
           .doc(productId)
-          .update({'isActive': false});
+          .delete();
+      print('✅ Product deleted: $productId');
     } catch (e) {
-      print('Error deleting product: $e');
+      print('❌ Error deleting product: $e');
       rethrow;
     }
   }
@@ -116,10 +120,24 @@ class DatabaseService {
   // Create community post
   Future<void> createCommunityPost(CommunityPost post) async {
     try {
+      final data = post.toMap();
+
+      // 🔒 Sanitize critical fields
+      data['userName'] =
+          (data['userName'] ?? '').toString().trim().isEmpty
+              ? 'Anonymous'
+              : data['userName'].toString().trim();
+
+      data['imageUrls'] =
+          data['imageUrls'] is List ? data['imageUrls'] : [];
+
+      data['createdAt'] =
+          data['createdAt'] ?? FieldValue.serverTimestamp();
+
       await _firestore
           .collection('community_posts')
           .doc(post.id)
-          .set(post.toMap());
+          .set(data);
     } catch (e) {
       print('Error creating community post: $e');
       rethrow;
@@ -223,5 +241,48 @@ class DatabaseService {
   // Get local image as File
   File getLocalImage(String path) {
     return File(path);
+  }
+
+  // ADD these helper methods:
+
+  Future<void> incrementItemsReused(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'stats.itemsReused': FieldValue.increment(1),
+      });
+    } catch (e) {
+      print('Error incrementing items reused: $e');
+    }
+  }
+
+  Future<void> incrementRecycled(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'stats.itemsRecycled': FieldValue.increment(1),
+      });
+    } catch (e) {
+      print('Error incrementing recycled: $e');
+    }
+  }
+
+  Future<void> incrementTotalPosts(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'stats.co2Saved': FieldValue.increment(1), // Using co2Saved field for Total Posts
+      });
+    } catch (e) {
+      print('Error incrementing total posts: $e');
+      }
+    }
+
+  Future<void> updateContribution(String userId, int totalLikesAndSaves) async {
+    try {
+      final contribution = (totalLikesAndSaves / 10).floor();
+      await _firestore.collection('users').doc(userId).update({
+        'stats.itemsExchanged': contribution, // Using itemsExchanged field for Contribution
+      });
+    } catch (e) {
+      print('Error updating contribution: $e');
+      }
   }
 }

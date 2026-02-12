@@ -5,6 +5,8 @@ import '../../services/auth_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
+import 'community/create_post_screen.dart';
+import 'community/post_detail_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -34,7 +36,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // Navigate to create post
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CreatePostScreen(),
+                ),
+              );
             },
           ),
         ],
@@ -106,7 +113,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: () {
-                            // Navigate to create post
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CreatePostScreen(),
+                              ),
+                            );
                           },
                           icon: const Icon(Icons.add),
                           label: const Text('Create First Post'),
@@ -147,133 +159,159 @@ class _PostCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // User Info
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppTheme.primaryGreen,
-                  child: Text(
-                    post.userName[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        DateFormat('MMM dd, yyyy').format(post.createdAt),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.darkGray.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor(post.category).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _getCategoryLabel(post.category),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: _getCategoryColor(post.category),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PostDetailScreen(post: post),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // User Info
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppTheme.primaryGreen,
+                    child: Text(
+                      (post.userName.isNotEmpty
+                              ? post.userName[0]
+                              : '?')
+                          .toUpperCase(),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Content
-            Text(
-              post.content,
-              style: const TextStyle(fontSize: 14),
-            ),
-            
-            // Images
-            if (post.imageUrls.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: post.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          post.imageUrls[index],
-                          width: 200,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 200,
-                            height: 200,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.image, size: 40),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-            
-            const SizedBox(height: 12),
-            
-            // Actions
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    isLiked ? Icons.favorite : Icons.favorite_outline,
-                    color: isLiked ? Colors.red : AppTheme.darkGray,
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(post.createdAt),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.darkGray.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  onPressed: () {
-                    final dbService = DatabaseService();
-                    dbService.toggleLikePost(post.id, currentUserId, isLiked);
-                  },
-                ),
-                Text('${post.likes}'),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.comment_outlined),
-                  onPressed: () {
-                    // Navigate to comments
-                  },
-                ),
-                Text('${post.comments}'),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.share_outlined),
-                  onPressed: () {
-                    // Share post
-                  },
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(post.category).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _getCategoryLabel(post.category),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _getCategoryColor(post.category),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Content
+              Text(
+                post.content,
+                style: const TextStyle(fontSize: 14),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              // Images
+              if (post.imageUrls.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 200,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: post.imageUrls.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            post.imageUrls[index],
+                            width: 200,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 200,
+                              height: 200,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image, size: 40),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
-            ),
-          ],
+              
+              const SizedBox(height: 12),
+              
+              // Actions
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_outline,
+                      color: isLiked ? Colors.red : AppTheme.darkGray,
+                    ),
+                    onPressed: () {
+                      final dbService = DatabaseService();
+                      dbService.toggleLikePost(post.id, currentUserId, isLiked);
+                    },
+                  ),
+                  Text('${post.likes}'),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(Icons.comment_outlined),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PostDetailScreen(post: post),
+                        ),
+                      );
+                    },
+                  ),
+                  Text('${post.comments}'),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.share_outlined),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Share feature coming soon!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

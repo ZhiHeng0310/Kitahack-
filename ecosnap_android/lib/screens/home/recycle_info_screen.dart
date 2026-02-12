@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 
-class RecycleInfoScreen extends StatelessWidget {
+class RecycleInfoScreen extends StatefulWidget {
   final String itemName;
   final String material;
 
@@ -12,7 +12,18 @@ class RecycleInfoScreen extends StatelessWidget {
   });
 
   @override
+  State<RecycleInfoScreen> createState() => _RecycleInfoScreenState();
+}
+
+class _RecycleInfoScreenState extends State<RecycleInfoScreen> {
+  // Default state selection
+  String selectedState = 'Kuala Lumpur'; 
+
+  @override
   Widget build(BuildContext context) {
+    // Get centers based on the selected state
+    final centersInState = AppConstants.recyclingCentersByState[selectedState] ?? [];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recycling Information'),
@@ -22,7 +33,7 @@ class RecycleInfoScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item Info
+            // Item Info Card
             Card(
               color: AppTheme.warningOrange.withOpacity(0.1),
               child: Padding(
@@ -36,15 +47,12 @@ class RecycleInfoScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            itemName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            widget.itemName,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Material: $material',
+                            'Material: ${widget.material}',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppTheme.darkGray.withOpacity(0.7),
@@ -59,62 +67,73 @@ class RecycleInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
+            // State Selector Dropdown
+            const Text(
+              'Select Your State',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.5)),
+              ),
+              child: DropdownButton<String>(
+                value: selectedState,
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: AppConstants.malaysianStates.map((String state) {
+                  return DropdownMenuItem<String>(
+                    value: state,
+                    child: Text(state),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedState = newValue!;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Preparation Steps
             const Text(
               'Preparation Steps',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryGreen,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
             ),
             const SizedBox(height: 12),
-            
-            _PreparationStep(
-              number: 1,
-              text: 'Clean the item thoroughly',
-              icon: Icons.cleaning_services,
-            ),
-            _PreparationStep(
-              number: 2,
-              text: 'Remove any labels or stickers',
-              icon: Icons.label_off,
-            ),
-            _PreparationStep(
-              number: 3,
-              text: 'Separate different materials if applicable',
-              icon: Icons.splitscreen,
-            ),
-            _PreparationStep(
-              number: 4,
-              text: 'Check local recycling guidelines',
-              icon: Icons.rule,
-            ),
+            const _PreparationStep(number: 1, text: 'Clean the item thoroughly', icon: Icons.cleaning_services),
+            const _PreparationStep(number: 2, text: 'Remove any labels or stickers', icon: Icons.label_off),
+            const _PreparationStep(number: 3, text: 'Separate materials if applicable', icon: Icons.splitscreen),
             
             const SizedBox(height: 24),
-            
-            // Recycling Centers
-            const Text(
-              'Nearby Recycling Centers',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryGreen,
-              ),
+
+            // Filtered Recycling Centers
+            Text(
+              'Recycling Centers in $selectedState',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
             ),
             const SizedBox(height: 12),
             
-            ...AppConstants.recyclingCenters.map((center) {
-              final acceptsMaterial = (center['acceptedItems'] as List<String>)
-                  .any((item) => material.toLowerCase().contains(item.toLowerCase()) ||
-                      item.toLowerCase().contains(material.toLowerCase()));
-              
-              return _RecyclingCenterCard(
-                center: center,
-                acceptsThisMaterial: acceptsMaterial,
-              );
-            }),
-            
+            if (centersInState.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text('No centers found for this state.'),
+              )
+            else
+              ...centersInState.map((center) {
+                final acceptsMaterial = (center['acceptedItems'] as List<String>)
+                    .any((item) => widget.material.toLowerCase().contains(item.toLowerCase()) ||
+                        item.toLowerCase().contains(widget.material.toLowerCase()));
+                
+                return _RecyclingCenterCard(
+                  center: center,
+                  acceptsThisMaterial: acceptsMaterial,
+                );
+              }),
+
             const SizedBox(height: 24),
             
             // Environmental Impact
@@ -125,26 +144,17 @@ class RecycleInfoScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.eco, color: AppTheme.successGreen),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Environmental Impact',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Icon(Icons.eco, color: AppTheme.successGreen),
+                        SizedBox(width: 8),
+                        Text('Environmental Impact', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'By recycling this item, you\'re helping reduce waste and conserve natural resources. Every small action makes a difference!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.darkGray.withOpacity(0.8),
-                      ),
+                      'By recycling this item, you\'re helping reduce waste in Malaysia. Every small action makes a difference!',
+                      style: TextStyle(fontSize: 14, color: AppTheme.darkGray.withOpacity(0.8)),
                     ),
                   ],
                 ),

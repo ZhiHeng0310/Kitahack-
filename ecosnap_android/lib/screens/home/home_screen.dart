@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../utils/constants.dart';
+import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 import 'scan_screen.dart';
 import 'marketplace_screen.dart';
 import 'community_screen.dart';
 import 'profile_screen.dart';
+import 'find_centers_screen.dart';
+import 'search_reuse_ideas_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -63,20 +68,41 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex == 2 ? null : FloatingActionButton(
-        onPressed: () {
-          setState(() => _currentIndex = 2);
-        },
-        backgroundColor: AppTheme.primaryGreen,
-        child: const Icon(Icons.camera_alt, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int itemsReused = 0;
+  int contribution = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final userId = authService.currentUser?.uid;
+    
+    if (userId != null) {
+      final userData = await authService.getUserDocument(userId);
+      if (userData != null && mounted) {
+        setState(() {
+          itemsReused = userData.stats.itemsReused;
+          contribution = userData.stats.itemsExchanged;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,145 +113,179 @@ class DashboardScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
-              // Navigate to scan history
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ScanHistoryScreen()),
+              );
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.eco, color: AppTheme.primaryGreen, size: 32),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Welcome to EcoSnap!',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryGreen,
+      body: RefreshIndicator(
+        onRefresh: _loadStats,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.eco, color: AppTheme.primaryGreen, size: 32),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Welcome to EcoSnap!',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryGreen,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Scan items to discover reuse ideas',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.darkGray.withOpacity(0.7),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Scan items to discover reuse ideas',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppTheme.darkGray.withOpacity(0.7),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Navigate to scan tab
+                            final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                            homeState?.setState(() {
+                              homeState._currentIndex = 2;
+                            });
+                          },
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Start Scanning'),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // Navigate to scan
-                      },
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Start Scanning'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Quick Stats
-            const Text(
-              'Your Impact',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.recycling,
-                    value: '0',
-                    label: 'Items Reused',
-                    color: AppTheme.lightGreen,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    icon: Icons.eco,
-                    value: '0 kg',
-                    label: 'CO₂ Saved',
-                    color: AppTheme.accentGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // Quick Actions
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryGreen,
               ),
-            ),
-            const SizedBox(height: 12),
-            
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                _ActionCard(
-                  icon: Icons.lightbulb_outline,
-                  title: 'Reuse Ideas',
-                  color: AppTheme.lightGreen,
-                  onTap: () {},
-                ),
-                _ActionCard(
-                  icon: Icons.recycling,
-                  title: 'Find Centers',
-                  color: AppTheme.accentGreen,
-                  onTap: () {},
-                ),
-                _ActionCard(
-                  icon: Icons.shopping_bag_outlined,
-                  title: 'Browse Market',
+              const SizedBox(height: 24),
+              
+              // Quick Stats
+              const Text(
+                'Your Impact',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: AppTheme.primaryGreen,
-                  onTap: () {},
                 ),
-                _ActionCard(
-                  icon: Icons.people_outline,
-                  title: 'Community',
-                  color: AppTheme.successGreen,
-                  onTap: () {},
+              ),
+              const SizedBox(height: 12),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.recycling,
+                      value: '$itemsReused',
+                      label: 'Items Reused',
+                      color: AppTheme.lightGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      icon: Icons.volunteer_activism,
+                      value: '$contribution',
+                      label: 'Contribution',
+                      color: AppTheme.accentGreen,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Quick Actions
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryGreen,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 12),
+              
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: [
+                  _ActionCard(
+                    icon: Icons.lightbulb_outline,
+                    title: 'Reuse Ideas',
+                    color: AppTheme.lightGreen,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SearchReuseIdeasScreen()),
+                      );
+                    },
+                  ),
+                  _ActionCard(
+                    icon: Icons.recycling,
+                    title: 'Find Centers',
+                    color: AppTheme.accentGreen,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FindCentersScreen()),
+                      );
+                    },
+                  ),
+                  _ActionCard(
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'Browse Market',
+                    color: AppTheme.primaryGreen,
+                    onTap: () {
+                      final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                      homeState?.setState(() {
+                        homeState._currentIndex = 1;
+                      });
+                    },
+                  ),
+                  _ActionCard(
+                    icon: Icons.people_outline,
+                    title: 'Community',
+                    color: AppTheme.successGreen,
+                    onTap: () {
+                      final homeState = context.findAncestorStateOfType<_HomeScreenState>();
+                      homeState?.setState(() {
+                        homeState._currentIndex = 3;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -316,6 +376,19 @@ class _ActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Placeholder for ScanHistoryScreen - will create next
+class ScanHistoryScreen extends StatelessWidget {
+  const ScanHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Scan History')),
+      body: const Center(child: Text('Scan History - Coming next')),
     );
   }
 }

@@ -35,7 +35,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
       setState(() => _isProcessing = true);
 
-      // Classify the image
+      // Classify the image using simple classifier
       final result = await WasteClassifier.classifyImage(image.path);
 
       if (!mounted) return;
@@ -57,6 +57,12 @@ class _ScanScreenState extends State<ScanScreen> {
         );
       }
 
+      // Save image locally
+      final localPath = await _dbService.saveImageLocally(
+        File(image.path),
+        'scan_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+
       // Create scan result
       final authService = Provider.of<AuthService>(context, listen: false);
       final userId = authService.currentUser?.uid ?? '';
@@ -69,7 +75,7 @@ class _ScanScreenState extends State<ScanScreen> {
         condition: result['condition'],
         confidence: result['confidence'],
         isReusable: result['isReusable'],
-        imagePath: image.path,
+        imagePath: localPath,
         timestamp: DateTime.now(),
         reuseIdeas: reuseIdeas,
         marketValue: marketValue,
@@ -77,7 +83,12 @@ class _ScanScreenState extends State<ScanScreen> {
 
       // Save to Firestore
       if (userId.isNotEmpty) {
-        await _dbService.saveScanResult(scanResult);
+        try {
+          await _dbService.saveScanResult(scanResult);
+        } catch (e) {
+          print('Error saving to Firestore: $e');
+          // Continue even if Firestore save fails
+        }
       }
 
       setState(() => _isProcessing = false);
@@ -97,8 +108,9 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing image: $e'),
+            content: Text('Error: ${e.toString()}'),
             backgroundColor: AppTheme.errorRed,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -127,6 +139,14 @@ class _ScanScreenState extends State<ScanScreen> {
                       color: AppTheme.darkGray.withOpacity(0.7),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This may take a few seconds',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.darkGray.withOpacity(0.5),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -135,7 +155,7 @@ class _ScanScreenState extends State<ScanScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header
+                  // Header Icon
                   const Icon(
                     Icons.camera_alt_outlined,
                     size: 80,
@@ -143,6 +163,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                   const SizedBox(height: 24),
                   
+                  // Title
                   const Text(
                     'Scan Your Item',
                     textAlign: TextAlign.center,
@@ -154,6 +175,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                   const SizedBox(height: 12),
                   
+                  // Description
                   Text(
                     'Take a photo or select from gallery to discover reuse ideas and recycling options',
                     textAlign: TextAlign.center,
@@ -200,9 +222,9 @@ class _ScanScreenState extends State<ScanScreen> {
                             children: [
                               const Icon(Icons.lightbulb_outline, color: AppTheme.accentGreen),
                               const SizedBox(width: 8),
-                              Text(
+                              const Text(
                                 'Tips for Best Results',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.primaryGreen,
@@ -217,6 +239,37 @@ class _ScanScreenState extends State<ScanScreen> {
                           _TipItem(text: 'Capture the whole item'),
                         ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Info Box
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryGreen.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: AppTheme.primaryGreen,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'AI will analyze if your item can be reused or should be recycled',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.primaryGreen,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

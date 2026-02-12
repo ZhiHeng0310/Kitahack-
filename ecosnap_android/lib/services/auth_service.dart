@@ -6,13 +6,9 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get current user
   User? get currentUser => _auth.currentUser;
-
-  // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Sign up with email and password
   Future<UserCredential> signUpWithEmail(String email, String password, String displayName) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -20,10 +16,8 @@ class AuthService {
         password: password,
       );
 
-      // Update display name
       await credential.user?.updateDisplayName(displayName);
 
-      // Create user document in Firestore
       if (credential.user != null) {
         await _createUserDocument(credential.user!);
       }
@@ -34,24 +28,31 @@ class AuthService {
     }
   }
 
-  // Sign in with email and password
   Future<UserCredential> signInWithEmail(String email, String password) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      
+      // Check if user document exists, create if not
+      if (credential.user != null) {
+        final userDoc = await _firestore.collection('users').doc(credential.user!.uid).get();
+        if (!userDoc.exists) {
+          await _createUserDocument(credential.user!);
+        }
+      }
+      
+      return credential;
     } catch (e) {
       throw _handleAuthException(e);
     }
   }
 
-  // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  // Reset password
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
@@ -60,7 +61,6 @@ class AuthService {
     }
   }
 
-  // Create user document in Firestore
   Future<void> _createUserDocument(User user) async {
     final userModel = UserModel(
       uid: user.uid,
@@ -74,15 +74,24 @@ class AuthService {
     await _firestore
         .collection('users')
         .doc(user.uid)
-        .set(userModel.toMap());
+        .set(userModel.toMap(), SetOptions(merge: true)); // CHANGED: Added merge option
   }
 
-  // Get user document
   Future<UserModel?> getUserDocument(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         return UserModel.fromMap(doc.data()!);
+      } else {
+        // Create user document if it doesn't exist
+        final currentUser = _auth.currentUser;
+        if (currentUser != null && currentUser.uid == uid) {
+          await _createUserDocument(currentUser);
+          final newDoc = await _firestore.collection('users').doc(uid).get();
+          if (newDoc.exists) {
+            return UserModel.fromMap(newDoc.data()!);
+          }
+        }
       }
       return null;
     } catch (e) {
@@ -91,20 +100,44 @@ class AuthService {
     }
   }
 
-  // Update user stats
   Future<void> updateUserStats(String uid, UserStats stats) async {
     try {
       await _firestore
           .collection('users')
           .doc(uid)
-          .update({'stats': stats.toMap()});
+          .set({'stats': stats.toMap()}, SetOptions(merge: true)); // CHANGED: Use set with merge
     } catch (e) {
       print('Error updating user stats: $e');
       rethrow;
     }
   }
 
-  // Handle auth exceptions
+  // NEW: Update user profile
+  Future<void> updateUserProfile(String uid, {String? displayName, String? photoUrl}) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (displayName != null) updates['displayName'] = displayName;
+      if (photoUrl != null) updates['photoUrl'] = photoUrl;
+      
+      if (updates.isNotEmpty) {
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .set(updates, SetOptions(merge: true));
+            
+        // Also update Firebase Auth profile
+        final user = _auth.currentUser;
+        if (user != null) {
+          if (displayName != null) await user.updateDisplayName(displayName);
+          if (photoUrl != null) await user.updatePhotoURL(photoUrl);
+        }
+      }
+    } catch (e) {
+      print('Error updating user profile: $e');
+      rethrow;
+    }
+  }
+
   String _handleAuthException(dynamic e) {
     if (e is FirebaseAuthException) {
       switch (e.code) {

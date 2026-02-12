@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
+import '../../services/database_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import 'profile/edit_profile_screen.dart';
+import 'profile/scan_history_screen.dart';
+import 'profile/my_listing_screen.dart';
+import 'profile/saved_posts_screen.dart';
+import 'profile/saved_products_screen.dart';
+import 'package:flutter/services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,10 +35,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     if (userId != null) {
       final userData = await authService.getUserDocument(userId);
-      setState(() {
-        _userModel = userData;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _userModel = userData;
+          _isLoading = false;
+        });
+      }
     } else {
       setState(() => _isLoading = false);
     }
@@ -61,6 +71,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openHelpSupport() async {
+  // Show dialog with information
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Help & Support'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Any inquiries can be filled in the Google Form:',
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () async {
+              final uri = Uri.parse(AppConstants.helpSupportUrl);
+              try {
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not open link. Please copy the URL.'),
+                        backgroundColor: AppTheme.errorRed,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not open link. Please copy the URL.'),
+                      backgroundColor: AppTheme.errorRed,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              AppConstants.helpSupportUrl,
+              style: const TextStyle(
+                color: AppTheme.primaryGreen,
+                decoration: TextDecoration.underline,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {
+                  // Copy to clipboard
+                  Clipboard.setData(ClipboardData(text: AppConstants.helpSupportUrl));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Link copied to clipboard!'),
+                      backgroundColor: AppTheme.successGreen,
+                    ),
+                  );
+                },
+                child: const Text('Copy Link'),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -78,123 +171,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              // Navigate to settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditProfileScreen(userModel: _userModel),
+                ),
+              ).then((_) => _loadUserData());
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Profile Header
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppTheme.primaryGreen,
-              child: Text(
-                (_userModel?.displayName ?? 'U')[0].toUpperCase(),
+      body: RefreshIndicator(
+        onRefresh: _loadUserData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              // Profile Header
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(userModel: _userModel),
+                    ),
+                  ).then((_) => _loadUserData());
+                },
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppTheme.primaryGreen,
+                  child: (_userModel?.photoUrl != null &&
+                          _userModel!.photoUrl!.isNotEmpty)
+                      ? ClipOval(
+                          child: Image.network(
+                            _userModel!.photoUrl!,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
+                          ),
+                        )
+                      : _buildDefaultAvatar(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              Text(
+                _userModel?.displayName ?? 'User',
                 style: const TextStyle(
-                  fontSize: 40,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            Text(
-              _userModel?.displayName ?? 'User',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            
-            Text(
-              _userModel?.email ?? '',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTheme.darkGray.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Impact Stats
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.eco, color: AppTheme.primaryGreen),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Your Impact',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.recycling,
-                            value: '${stats.itemsReused}',
-                            label: 'Items Reused',
-                            color: AppTheme.lightGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.delete_outline,
-                            value: '${stats.itemsRecycled}',
-                            label: 'Recycled',
-                            color: AppTheme.accentGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.swap_horiz,
-                            value: '${stats.itemsExchanged}',
-                            label: 'Exchanged',
-                            color: AppTheme.primaryGreen,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.co2,
-                            value: '${stats.co2Saved.toStringAsFixed(1)}kg',
-                            label: 'CO₂ Saved',
-                            color: AppTheme.successGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              const SizedBox(height: 4),
+              
+              Text(
+                _userModel?.email ?? '',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.darkGray.withOpacity(0.7),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Badges
-            if (stats.badges.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              
+              // Impact Stats
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -203,97 +244,224 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.stars, color: AppTheme.accentGreen),
+                          const Icon(Icons.eco, color: AppTheme.primaryGreen),
                           const SizedBox(width: 8),
                           const Text(
-                            'Badges',
+                            'Your Impact',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryGreen,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: stats.badges.map((badge) {
-                          return Chip(
-                            avatar: const Icon(Icons.emoji_events, size: 16),
-                            label: Text(badge),
-                            backgroundColor: AppTheme.successGreen.withOpacity(0.2),
-                          );
-                        }).toList(),
+                      const SizedBox(height: 20),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.recycling,
+                              value: '${stats.itemsReused}',
+                              label: 'Items Reused',
+                              color: AppTheme.lightGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.delete_outline,
+                              value: '${stats.itemsRecycled}',
+                              label: 'Recycled',
+                              color: AppTheme.accentGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.volunteer_activism,
+                              value: '${stats.itemsExchanged}',
+                              label: 'Contribution',
+                              color: AppTheme.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.post_add,
+                              value: '${stats.co2Saved.toInt()}',
+                              label: 'Total Posts',
+                              color: AppTheme.successGreen,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-            ],
-            
-            // Menu Items
-            Card(
-              child: Column(
-                children: [
-                  _MenuItem(
-                    icon: Icons.history,
-                    title: 'Scan History',
-                    onTap: () {},
+              
+              // Badges
+              if (stats.badges.isNotEmpty) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.stars, color: AppTheme.accentGreen),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Badges',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: stats.badges.map((badge) {
+                            return Chip(
+                              avatar: const Icon(Icons.emoji_events, size: 16),
+                              label: Text(badge),
+                              backgroundColor: AppTheme.successGreen.withOpacity(0.2),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Divider(height: 1),
-                  _MenuItem(
-                    icon: Icons.store,
-                    title: 'My Listings',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1),
-                  _MenuItem(
-                    icon: Icons.bookmark,
-                    title: 'Saved Items',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1),
-                  _MenuItem(
-                    icon: Icons.help_outline,
-                    title: 'Help & Support',
-                    onTap: () {},
-                  ),
-                  const Divider(height: 1),
-                  _MenuItem(
-                    icon: Icons.info_outline,
-                    title: 'About',
-                    onTap: () {
-                      showAboutDialog(
-                        context: context,
-                        applicationName: AppConstants.appName,
-                        applicationVersion: AppConstants.appVersion,
-                        applicationIcon: const Icon(Icons.eco, size: 40, color: AppTheme.primaryGreen),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Sign Out Button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _signOut,
-                icon: const Icon(Icons.logout),
-                label: const Text('Sign Out'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.errorRed,
-                  side: const BorderSide(color: AppTheme.errorRed),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                const SizedBox(height: 16),
+              ],
+              
+              // Menu Items
+              Card(
+                child: Column(
+                  children: [
+                    _MenuItem(
+                      icon: Icons.history,
+                      title: 'Scan History',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ScanHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _MenuItem(
+                      icon: Icons.store,
+                      title: 'My Listings',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MyListingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _MenuItem(
+                      icon: Icons.bookmark,
+                      title: 'Saved Posts',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SavedPostsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _MenuItem(
+                      icon: Icons.shopping_bag,
+                      title: 'Saved Products',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SavedProductsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    _MenuItem(
+                      icon: Icons.help_outline,
+                      title: 'Help & Support',
+                      onTap: _openHelpSupport,
+                    ),
+                    const Divider(height: 1),
+                    _MenuItem(
+                      icon: Icons.info_outline,
+                      title: 'About',
+                      onTap: () {
+                        showAboutDialog(
+                          context: context,
+                          applicationName: AppConstants.appName,
+                          applicationVersion: AppConstants.appVersion,
+                          applicationIcon: const Icon(Icons.eco, size: 40, color: AppTheme.primaryGreen),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              
+              // Sign Out Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign Out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.errorRed,
+                    side: const BorderSide(color: AppTheme.errorRed),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar() {
+    final name = _userModel?.displayName?.trim() ?? '';
+
+    final initial = name.isNotEmpty
+        ? name[0].toUpperCase()
+        : 'U';
+
+    return Text(
+      initial,
+      style: const TextStyle(
+        fontSize: 40,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
       ),
     );
   }

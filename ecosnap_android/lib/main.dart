@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'utils/constants.dart';
 import 'services/auth_service.dart';
-import 'services/classifier_service.dart';
+import 'services/classifier_service.dart' hide AppConstants;
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 

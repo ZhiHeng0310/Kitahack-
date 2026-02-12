@@ -200,6 +200,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import numpy as np
+import os
 
 # ==========================
 # CONFIGURATION
@@ -209,14 +210,23 @@ NUM_CLASSES = 9
 BATCH_SIZE = 32
 EPOCHS_INITIAL = 25
 EPOCHS_FINE_TUNE = 15
-DATASET_PATH = "dataset/"
+DATASET_PATH = "dataset/"       # Update to your dataset path
 MODEL_NAME = "waste_classifier"
+TFLITE_PATH = f"assets/models/{MODEL_NAME}.tflite"
+LABELS_PATH = f"assets/models/labels.txt"
+
+# ==========================
+# NORMALIZATION LAYER
+# ==========================
+class NormalizeLayer(layers.Layer):
+    def call(self, inputs):
+        return tf.cast(inputs, tf.float32) / 127.5 - 1.0
 
 # ==========================
 # LOAD DATASET
 # ==========================
 def load_dataset():
-    train_ds = keras.utils.image_dataset_from_directory(
+    train_ds_raw = keras.utils.image_dataset_from_directory(
         DATASET_PATH,
         validation_split=0.2,
         subset="training",
@@ -226,7 +236,7 @@ def load_dataset():
         label_mode="categorical"
     )
 
-    val_ds = keras.utils.image_dataset_from_directory(
+    val_ds_raw = keras.utils.image_dataset_from_directory(
         DATASET_PATH,
         validation_split=0.2,
         subset="validation",
@@ -236,143 +246,110 @@ def load_dataset():
         label_mode="categorical"
     )
 
-    class_names = train_ds.class_names
+    # Capture class names **before prefetch**
+    class_names = train_ds_raw.class_names
 
-    # Performance optimization
     AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.prefetch(AUTOTUNE)
-    val_ds = val_ds.prefetch(AUTOTUNE)
+    train_ds = train_ds_raw.prefetch(AUTOTUNE)
+    val_ds = val_ds_raw.prefetch(AUTOTUNE)
 
     return train_ds, val_ds, class_names
-
 
 # ==========================
 # CREATE MODEL
 # ==========================
-def create_model():
-    # Data augmentation
+def create_model(num_classes):
     data_augmentation = keras.Sequential([
         layers.RandomFlip("horizontal"),
         layers.RandomRotation(0.1),
         layers.RandomZoom(0.1),
     ])
 
-    # Pretrained MobileNetV2 base
     base_model = tf.keras.applications.MobileNetV2(
         input_shape=(IMG_SIZE, IMG_SIZE, 3),
         include_top=False,
         weights="imagenet"
     )
-
-    base_model.trainable = False  # Freeze for transfer learning
+    base_model.trainable = False
 
     inputs = keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
     x = data_augmentation(inputs)
-    x = tf.keras.applications.mobilenet_v2.preprocess_input(x)
+    x = NormalizeLayer()(x)
     x = base_model(x, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.3)(x)
-    outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
 
     model = keras.Model(inputs, outputs)
-
     return model, base_model
-
 
 # ==========================
 # COMPILE MODEL
 # ==========================
-def compile_model(model, learning_rate=0.001):
+def compile_model(model, lr=0.001):
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss="categorical_crossentropy",
         metrics=["accuracy"]
     )
     return model
 
+# ==========================
+# SAVE LABELS
+# ==========================
+def save_labels(class_names):
+    os.makedirs(os.path.dirname(LABELS_PATH), exist_ok=True)
+    with open(LABELS_PATH, "w") as f:
+        for c in class_names:
+            f.write(c + "\n")
+    print(f"✅ Labels saved to {LABELS_PATH}")
 
 # ==========================
 # CONVERT TO TFLITE
 # ==========================
-def convert_to_tflite(model, output_path="waste_classifier.tflite"):
+def convert_to_tflite(model):
+    os.makedirs(os.path.dirname(TFLITE_PATH), exist_ok=True)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
-
     tflite_model = converter.convert()
-
-    with open(output_path, "wb") as f:
+    with open(TFLITE_PATH, "wb") as f:
         f.write(tflite_model)
-
-    print(f"✅ TFLite model saved: {output_path}")
-    print(f"Model size: {len(tflite_model) / 1024:.2f} KB")
-
+    print(f"✅ TFLite model saved: {TFLITE_PATH} ({len(tflite_model)/1024:.2f} KB)")
 
 # ==========================
-# MAIN TRAINING PIPELINE
+# TRAINING PIPELINE
 # ==========================
 def main():
     print("📂 Loading dataset...")
     train_ds, val_ds, class_names = load_dataset()
+    save_labels(class_names)
     print("Classes:", class_names)
 
-    print("\n🏗 Creating MobileNetV2 model...")
-    model, base_model = create_model()
+    print("\n🏗 Creating model...")
+    model, base_model = create_model(len(class_names))
     model = compile_model(model)
 
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss",
-            patience=3,
-            restore_best_weights=True
-        ),
-        tf.keras.callbacks.ReduceLROnPlateau(
-            monitor="val_loss",
-            factor=0.3,
-            patience=2
-        )
+        keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True),
+        keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.3, patience=2)
     ]
 
-    # ==========================
-    # STAGE 1: Transfer Learning
-    # ==========================
     print("\n🚀 Stage 1: Training top layers...")
-    model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=EPOCHS_INITIAL,
-        callbacks=callbacks
-    )
+    model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS_INITIAL, callbacks=callbacks)
 
-    # ==========================
-    # STAGE 2: Fine-Tuning
-    # ==========================
     print("\n🔧 Stage 2: Fine-tuning base model...")
-
     base_model.trainable = True
-
-    # Freeze earlier layers, fine-tune last 15 layers
     for layer in base_model.layers[:-15]:
         layer.trainable = False
+    model = compile_model(model, lr=1e-5)
+    model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS_FINE_TUNE, callbacks=callbacks)
 
-    model = compile_model(model, learning_rate=1e-5)
-
-    model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=EPOCHS_FINE_TUNE,
-        callbacks=callbacks
-    )
-
-    # Save full Keras model
+    # Save Keras model and TFLite
     model.save(f"{MODEL_NAME}.h5")
-    print(f"\n💾 Keras model saved: {MODEL_NAME}.h5")
+    print(f"💾 Keras model saved: {MODEL_NAME}.h5")
+    convert_to_tflite(model)
 
-    # Convert to TFLite
-    print("\n📦 Converting to TFLite...")
-    convert_to_tflite(model, f"{MODEL_NAME}.tflite")
-
-    print("\n🎉 Training complete! Copy the .tflite file into your Flutter assets/models/ folder.")
-
+    print("\n🎉 Training complete! Copy the .tflite and labels.txt into your Flutter assets/models folder.")
 
 if __name__ == "__main__":
     main()

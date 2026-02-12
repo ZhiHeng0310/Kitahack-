@@ -1,12 +1,82 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import 'package:flutter/services.dart';
+import 'package:ecosnap/screens/home/community/create_post_screen.dart';
 
 class ReuseIdeasScreen extends StatelessWidget {
   final ScanResult scanResult;
 
   const ReuseIdeasScreen({super.key, required this.scanResult});
+
+  Future<void> _openYouTube(BuildContext context, String url) async {
+  try {
+    final uri = Uri.parse(url);
+    
+    // Try to launch
+    final canLaunch = await canLaunchUrl(uri);
+    
+    if (canLaunch) {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Opening: $url'),
+            action: SnackBarAction(
+              label: 'Copy',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: url));
+              },
+            ),
+          ),
+        );
+      }
+    } else {
+      if (context.mounted) {
+        // Show URL so user can copy it
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('YouTube Tutorial'),
+            content: SelectableText(url),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: url));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Link copied!')),
+                  );
+                },
+                child: const Text('Copy Link'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    print('Error opening YouTube: $e');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open YouTube. Link: $url'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +98,9 @@ class ReuseIdeasScreen extends StatelessWidget {
                   ? Image.file(
                       File(scanResult.imagePath),
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.image, size: 60, color: Colors.grey);
+                      },
                     )
                   : const Icon(Icons.image, size: 60, color: Colors.grey),
             ),
@@ -48,7 +121,7 @@ class ReuseIdeasScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Material: ${scanResult.material}',
+                    'Material: ${scanResult.material} • Condition: ${scanResult.condition}',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppTheme.darkGray.withOpacity(0.7),
@@ -62,7 +135,7 @@ class ReuseIdeasScreen extends StatelessWidget {
                       const Icon(Icons.lightbulb_outline, color: AppTheme.accentGreen),
                       const SizedBox(width: 8),
                       Text(
-                        '${ideas.length} Reuse Ideas',
+                        '${ideas.length} Creative Reuse Ideas',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -73,7 +146,49 @@ class ReuseIdeasScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   
                   // Ideas List
-                  ...ideas.map((idea) => _IdeaCard(idea: idea)),
+                  if (ideas.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 60,
+                              color: AppTheme.darkGray.withOpacity(0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No specific ideas found for this item',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppTheme.darkGray.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...ideas.map((idea) => _IdeaCard(
+                      idea: idea,
+                      onTutorialTap: () {
+                        // Get YouTube URL from constants
+                        final itemKey = AppConstants.reuseIdeas.keys.firstWhere(
+                          (key) => scanResult.itemName.toLowerCase().contains(key.toLowerCase()),
+                          orElse: () => '',
+                        );
+                        
+                        if (itemKey.isNotEmpty) {
+                          final allIdeas = AppConstants.reuseIdeas[itemKey]!;
+                          final matchingIdea = allIdeas.firstWhere(
+                            (i) => i['title'] == idea.title,
+                            orElse: () => {'youtubeUrl': 'https://www.youtube.com/results?search_query=${idea.title}+diy'},
+                          );
+                          _openYouTube(context, matchingIdea['youtubeUrl']);
+                        }
+                      },
+                    )),
                   
                   const SizedBox(height: 24),
                   
@@ -84,6 +199,12 @@ class ReuseIdeasScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         children: [
+                          const Icon(
+                            Icons.share,
+                            color: AppTheme.primaryGreen,
+                            size: 40,
+                          ),
+                          const SizedBox(height: 12),
                           const Text(
                             'Ready to Transform?',
                             style: TextStyle(
@@ -92,7 +213,7 @@ class ReuseIdeasScreen extends StatelessWidget {
                               color: AppTheme.primaryGreen,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           const Text(
                             'Share your creation with the community and inspire others!',
                             textAlign: TextAlign.center,
@@ -101,7 +222,13 @@ class ReuseIdeasScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // Navigate to community post creation
+                              // Navigate to create post screen
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CreatePostScreen(),
+                                ),
+                              );
                             },
                             icon: const Icon(Icons.people),
                             label: const Text('Share with Community'),
@@ -122,8 +249,25 @@ class ReuseIdeasScreen extends StatelessWidget {
 
 class _IdeaCard extends StatelessWidget {
   final ReuseIdea idea;
+  final VoidCallback onTutorialTap;
 
-  const _IdeaCard({required this.idea});
+  const _IdeaCard({
+    required this.idea,
+    required this.onTutorialTap,
+  });
+
+  Color _getDifficultyColor(String difficulty) {
+    switch (difficulty.toLowerCase()) {
+      case 'easy':
+        return AppTheme.successGreen;
+      case 'medium':
+        return AppTheme.accentGreen;
+      case 'hard':
+        return AppTheme.warningOrange;
+      default:
+        return AppTheme.primaryGreen;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,36 +342,24 @@ class _IdeaCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
-            // Action Button
-            OutlinedButton.icon(
-              onPressed: () {
-                // Navigate to tutorials or marketplace
-              },
-              icon: const Icon(Icons.play_circle_outline, size: 18),
-              label: const Text('View Tutorials'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryGreen,
-                side: const BorderSide(color: AppTheme.primaryGreen),
+            // Tutorial Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onTutorialTap,
+                icon: const Icon(Icons.play_circle_outline),
+                label: const Text('Watch YouTube Tutorial'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Color _getDifficultyColor(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return AppTheme.successGreen;
-      case 'medium':
-        return AppTheme.accentGreen;
-      case 'hard':
-        return AppTheme.warningOrange;
-      default:
-        return AppTheme.primaryGreen;
-    }
   }
 }

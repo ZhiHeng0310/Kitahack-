@@ -1,0 +1,9 @@
+Clothing_Fabric_Clean
+Clothing_Fabric_Damaged
+Food Cans_Aluminum_Clean
+Food Waste_Organic_Contaminated
+Magazine_Paper_Clean
+Newspaper_Paper_Clean
+Plastic Bag_Plastic_Clean
+Plastic Bottle_Plastic_Clean
+Styrofoam_Plastic_Clean

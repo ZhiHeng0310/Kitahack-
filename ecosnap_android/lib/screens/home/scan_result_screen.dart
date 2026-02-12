@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../utils/constants.dart';
 import 'recycle_info_screen.dart';
 import 'reuse_ideas_screen.dart';
+import 'find_centers_screen.dart';
 
 class ScanResultScreen extends StatelessWidget {
   final ScanResult scanResult;
@@ -20,6 +21,12 @@ class ScanResultScreen extends StatelessWidget {
             icon: const Icon(Icons.share),
             onPressed: () {
               // Share functionality
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Share feature coming soon!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
           ),
         ],
@@ -36,6 +43,11 @@ class ScanResultScreen extends StatelessWidget {
                   ? Image.file(
                       File(scanResult.imagePath),
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.image, size: 80, color: Colors.grey),
+                        );
+                      },
                     )
                   : const Icon(Icons.image, size: 80, color: Colors.grey),
             ),
@@ -67,7 +79,7 @@ class ScanResultScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           
                           _InfoRow(label: 'Item', value: scanResult.itemName),
                           _InfoRow(label: 'Material', value: scanResult.material),
@@ -99,6 +111,7 @@ class ScanResultScreen extends StatelessWidget {
     );
   }
 
+    /// PATH A: Recycle Path
   Widget _buildRecyclePath(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,7 +132,7 @@ class ScanResultScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'This item cannot be reused',
+                      '❌ This item cannot be reused',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -140,7 +153,7 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         const Text(
           'Recycling Options',
           style: TextStyle(
@@ -150,29 +163,61 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RecycleInfoScreen(
-                  itemName: scanResult.itemName,
-                  material: scanResult.material,
+
+        // Recycle Info Preview
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.checklist, color: AppTheme.accentGreen),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Preparation Steps',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryGreen,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            );
-          },
-          icon: const Icon(Icons.location_on),
-          label: const Text('Find Recycling Centers'),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 12),
+                _PrepStep(number: '1', text: 'Clean the item thoroughly'),
+                _PrepStep(number: '2', text: 'Remove labels and stickers'),
+                _PrepStep(number: '3', text: 'Separate different materials'),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FindCentersScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.location_on),
+            label: const Text('Find Recycling Centers'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
           ),
         ),
       ],
     );
   }
 
+  /// PATH B: Reuse Path
   Widget _buildReusePath(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +238,7 @@ class ScanResultScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Great news!',
+                      '✅ Great news!',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -212,8 +257,7 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        
-        // Reuse Ideas Preview
+
         const Text(
           'Reuse Ideas',
           style: TextStyle(
@@ -223,7 +267,7 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        
+
         if (scanResult.reuseIdeas != null && scanResult.reuseIdeas!.isNotEmpty)
           Column(
             children: scanResult.reuseIdeas!.take(2).map((idea) {
@@ -233,43 +277,48 @@ class ScanResultScreen extends StatelessWidget {
                   leading: CircleAvatar(
                     backgroundColor: _getDifficultyColor(idea.difficulty),
                     child: Text(
-                      idea.difficulty[0],
+                      idea.difficulty[0].toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  title: Text(idea.title),
+                  title: Text(
+                    idea.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: Text(idea.description),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 ),
               );
             }).toList(),
           ),
-        
+
         const SizedBox(height: 12),
-        
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ReuseIdeasScreen(scanResult: scanResult),
-              ),
-            );
-          },
-          icon: const Icon(Icons.lightbulb),
-          label: const Text('View All Reuse Ideas'),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReuseIdeasScreen(scanResult: scanResult),
+                ),
+              );
+            },
+            icon: const Icon(Icons.lightbulb),
+            label: const Text('View All Reuse Ideas'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
           ),
         ),
-        
-        // Market Value
+
+        // Market Value Info
         if (scanResult.marketValue != null) ...[
           const SizedBox(height: 24),
-          
           Card(
             color: AppTheme.accentGreen.withOpacity(0.1),
             child: Padding(
@@ -330,6 +379,7 @@ class ScanResultScreen extends StatelessWidget {
   }
 }
 
+/// Reusable Info Row
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -355,6 +405,50 @@ class _InfoRow extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Preparation Step Widget
+class _PrepStep extends StatelessWidget {
+  final String number;
+  final String text;
+
+  const _PrepStep({required this.number, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13),
             ),
           ),
         ],
