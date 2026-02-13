@@ -61,3 +61,7 @@ Desktop.ini
 *.bak
 *.swp
 *.tmp
+
+# Firebase configuration files
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
