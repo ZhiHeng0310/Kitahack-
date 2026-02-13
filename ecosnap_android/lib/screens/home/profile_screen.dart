@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import '../../widgets/network_or_file_image.dart';
 import 'profile/edit_profile_screen.dart';
 import 'profile/scan_history_screen.dart';
 import 'profile/my_listing_screen.dart';
-import 'profile/saved_posts_screen.dart';
 import 'profile/saved_products_screen.dart';
 import 'package:flutter/services.dart';
+import 'profile/saved_posts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,6 +33,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
+    
+    // Force reload the current user
+    await authService.currentUser?.reload();
+    
     final userId = authService.currentUser?.uid;
     
     if (userId != null) {
@@ -170,13 +176,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async{
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => EditProfileScreen(userModel: _userModel),
                 ),
-              ).then((_) => _loadUserData());
+              );
+              await _loadUserData();
             },
           ),
         ],
@@ -201,15 +208,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: AppTheme.primaryGreen,
-                  child: (_userModel?.photoUrl != null &&
-                          _userModel!.photoUrl!.isNotEmpty)
+                  child: _userModel?.photoUrl != null
                       ? ClipOval(
-                          child: Image.network(
-                            _userModel!.photoUrl!,
+                          child: NetworkOrFileImage(
+                            imagePath: _userModel!.photoUrl!,
                             width: 100,
                             height: 100,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
                           ),
                         )
                       : _buildDefaultAvatar(),
@@ -385,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SavedPostsScreen(),
+                            builder: (_) =>  SavedPostsScreen(),
                           ),
                         );
                       },
@@ -533,6 +538,54 @@ class _MenuItem extends StatelessWidget {
       title: Text(title),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
+    );
+  }
+}
+
+class ContributionProgress extends StatelessWidget {
+  final int totalEngagement; // itemsExchanged
+
+  const ContributionProgress({super.key, required this.totalEngagement});
+
+  @override
+  Widget build(BuildContext context) {
+    // Calculate progress (0 to 9)
+    int currentProgress = totalEngagement % 10;
+    // Calculate percentage for the progress bar (0.0 to 1.0)
+    double percent = currentProgress / 10.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Contribution Progress",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            Text(
+              "$currentProgress / 10 actions",
+              style: TextStyle(color: AppTheme.primaryGreen, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: percent,
+            minHeight: 10,
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "Perform ${10 - currentProgress} more actions to earn +1 Contribution!",
+          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+        ),
+      ],
     );
   }
 }

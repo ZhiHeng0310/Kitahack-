@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../utils/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import 'profile/scan_history_screen.dart';
 import 'scan_screen.dart';
 import 'marketplace_screen.dart';
 import 'community_screen.dart';
@@ -376,19 +377,6 @@ class _ActionCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// Placeholder for ScanHistoryScreen - will create next
-class ScanHistoryScreen extends StatelessWidget {
-  const ScanHistoryScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Scan History')),
-      body: const Center(child: Text('Scan History - Coming next')),
     );
   }
 }

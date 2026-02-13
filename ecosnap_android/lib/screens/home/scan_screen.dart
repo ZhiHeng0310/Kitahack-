@@ -57,10 +57,10 @@ class _ScanScreenState extends State<ScanScreen> {
         );
       }
 
-      // Save image locally
-      final localPath = await _dbService.saveImageLocally(
+      // Upload scan image to ImgBB
+      final imageUrl = await _dbService.uploadImage(
         File(image.path),
-        'scan_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        'scan_images',
       );
 
       // Create scan result
@@ -75,7 +75,7 @@ class _ScanScreenState extends State<ScanScreen> {
         condition: result['condition'],
         confidence: result['confidence'],
         isReusable: result['isReusable'],
-        imagePath: localPath,
+        imagePath: imageUrl,
         timestamp: DateTime.now(),
         reuseIdeas: reuseIdeas,
         marketValue: marketValue,

@@ -16,10 +16,18 @@ class AuthService {
         password: password,
       );
 
+      // CRITICAL: Update display name in Firebase Auth FIRST
       await credential.user?.updateDisplayName(displayName);
+      
+      // Reload user to get updated profile
+      await credential.user?.reload();
+      
+      // Get fresh user data
+      final updatedUser = _auth.currentUser;
 
-      if (credential.user != null) {
-        await _createUserDocument(credential.user!);
+      if (updatedUser != null) {
+        // Now create user document with the updated display name
+        await _createUserDocument(updatedUser);
       }
 
       return credential;
@@ -65,7 +73,7 @@ class AuthService {
     final userModel = UserModel(
       uid: user.uid,
       email: user.email!,
-      displayName: user.displayName,
+      displayName: user.displayName ?? user.email!.split('@')[0], // Use displayName from Firebase Auth
       photoUrl: user.photoURL,
       createdAt: DateTime.now(),
       stats: UserStats(),
@@ -74,7 +82,7 @@ class AuthService {
     await _firestore
         .collection('users')
         .doc(user.uid)
-        .set(userModel.toMap(), SetOptions(merge: true)); // CHANGED: Added merge option
+        .set(userModel.toMap(), SetOptions(merge: true));
   }
 
   Future<UserModel?> getUserDocument(String uid) async {
@@ -120,16 +128,25 @@ class AuthService {
       if (photoUrl != null) updates['photoUrl'] = photoUrl;
       
       if (updates.isNotEmpty) {
+        // Update Firestore
         await _firestore
             .collection('users')
             .doc(uid)
             .set(updates, SetOptions(merge: true));
             
-        // Also update Firebase Auth profile
+        // Update Firebase Auth profile
         final user = _auth.currentUser;
         if (user != null) {
-          if (displayName != null) await user.updateDisplayName(displayName);
-          if (photoUrl != null) await user.updatePhotoURL(photoUrl);
+          // Update in separate calls to avoid type issues
+          if (displayName != null) {
+            await user.updateDisplayName(displayName);
+          }
+          if (photoUrl != null) {
+            await user.updatePhotoURL(photoUrl);
+          }
+          
+          // Reload to get fresh data
+          await user.reload();
         }
       }
     } catch (e) {

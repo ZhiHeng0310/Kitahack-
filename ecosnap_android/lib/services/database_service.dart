@@ -2,12 +2,39 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../models/models.dart';
+import 'imgbb_service.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ImgBBService _imgbbService = ImgBBService();
+
+  // STORAGE - Upload to ImgBB instead of local/Firebase
+  Future<String> uploadImage(File imageFile, String path) async {
+    try {
+      // Upload to ImgBB and get permanent URL
+      final imageUrl = await _imgbbService.uploadImage(imageFile);
+      return imageUrl;
+    } catch (e) {
+      print('❌ Error uploading image: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<String>> uploadImages(List<File> imageFiles, String folderPath) async {
+    try {
+      final urls = await _imgbbService.uploadImages(imageFiles);
+      return urls;
+    } catch (e) {
+      print('❌ Error uploading images: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteImage(String imageUrl) async {
+    await _imgbbService.deleteImage(imageUrl);
+  }
 
   // SCAN RESULTS
-  
   // Save scan result
   Future<void> saveScanResult(ScanResult result) async {
     try {
@@ -191,56 +218,6 @@ class DatabaseService {
       print('Error toggling like: $e');
       rethrow;
     }
-  }
-
-  // LOCAL STORAGE (No Firebase Storage needed!)
-
-  // Save image to local device storage
-  Future<String> saveImageLocally(File imageFile, String fileName) async {
-    try {
-      // Get app's document directory
-      final directory = await getApplicationDocumentsDirectory();
-      final imagePath = '${directory.path}/$fileName';
-      
-      // Copy file to app directory
-      final savedImage = await imageFile.copy(imagePath);
-      
-      // Return local file path
-      return savedImage.path;
-    } catch (e) {
-      print('Error saving image locally: $e');
-      rethrow;
-    }
-  }
-
-  // Save multiple images locally
-  Future<List<String>> saveImagesLocally(List<File> imageFiles, String folderName) async {
-    final paths = <String>[];
-    
-    for (int i = 0; i < imageFiles.length; i++) {
-      final fileName = '$folderName/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-      final path = await saveImageLocally(imageFiles[i], fileName);
-      paths.add(path);
-    }
-    
-    return paths;
-  }
-
-  // Delete local image
-  Future<void> deleteLocalImage(String imagePath) async {
-    try {
-      final file = File(imagePath);
-      if (await file.exists()) {
-        await file.delete();
-      }
-    } catch (e) {
-      print('Error deleting local image: $e');
-    }
-  }
-  
-  // Get local image as File
-  File getLocalImage(String path) {
-    return File(path);
   }
 
   // ADD these helper methods:

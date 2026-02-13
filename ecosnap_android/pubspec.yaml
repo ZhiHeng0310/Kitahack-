@@ -10,12 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
   
+  # ImgBB
+  http: ^1.1.0
+
   # Firebase
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_analytics: ^10.7.4
-  firebase_storage: ^11.1.0
+  firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
+  cloud_firestore: ^6.1.2
+  firebase_analytics: ^12.1.2
+  firebase_storage: ^13.0.6
   
   # ML & Image Processing
   tflite_flutter: ^0.11.0

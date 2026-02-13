@@ -36,18 +36,19 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+      
+      // Success - don't show any message, auth state will handle navigation
+      
     } catch (e) {
+      // Only show error if login actually failed
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
             backgroundColor: AppTheme.errorRed,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }

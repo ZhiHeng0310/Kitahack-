@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import '../../widgets/network_or_file_image.dart';
 import 'recycle_info_screen.dart';
 import 'reuse_ideas_screen.dart';
 import 'find_centers_screen.dart';
@@ -40,14 +41,10 @@ class ScanResultScreen extends StatelessWidget {
               height: 250,
               color: Colors.grey[200],
               child: scanResult.imagePath.isNotEmpty
-                  ? Image.file(
-                      File(scanResult.imagePath),
+                  ? NetworkOrFileImage(
+                      imagePath: scanResult.imagePath,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(Icons.image, size: 80, color: Colors.grey),
-                        );
-                      },
+                      height: 250,
                     )
                   : const Icon(Icons.image, size: 80, color: Colors.grey),
             ),

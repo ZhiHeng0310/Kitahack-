@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
+import '../../../widgets/network_or_file_image.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/models.dart';
@@ -61,24 +62,47 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       if (images.isEmpty) return;
 
-      // Limit to 4 images total
+      setState(() => _isLoading = true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Uploading images...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
+        ),
+      );
+
       final remainingSlots = 4 - _imagePaths.length;
       final imagesToAdd = images.take(remainingSlots).toList();
 
       for (var image in imagesToAdd) {
-        final savedPath = await _dbService.saveImageLocally(
+        final imageUrl = await _dbService.uploadImage(
           File(image.path),
-          'post_${DateTime.now().millisecondsSinceEpoch}_${_imagePaths.length}.jpg',
+          'community_posts',
         );
-        _imagePaths.add(savedPath);
+        _imagePaths.add(imageUrl);
       }
 
-      setState(() {});
+      setState(() => _isLoading = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
     } catch (e) {
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting images: $e'),
+            content: Text('Error uploading: $e'),
             backgroundColor: AppTheme.errorRed,
           ),
         );
@@ -104,21 +128,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       // REPLACE this section in _savePost():
       if (widget.post == null) {
-        // Ensure safe username
-        String safeUserName = 'Anonymous';
-        if (userData?.displayName != null &&
-            userData!.displayName!.trim().isNotEmpty) {
-          safeUserName = userData.displayName!.trim();
-        } else if (user.email != null && user.email!.contains('@')) {
-          final emailName = user.email!.split('@')[0].trim();
-          if (emailName.isNotEmpty) {
-            safeUserName = emailName;
-          }
-        }
-        
         // Create new post
+        final postId = const Uuid().v4(); // Generate ID first
+        
         final post = CommunityPost(
-          id: const Uuid().v4(),
+          id: postId,
           userId: user.uid,
           userName: userData?.displayName ?? user.email!.split('@')[0],
           userPhotoUrl: userData?.photoUrl,
@@ -126,12 +140,32 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           category: _selectedCategory,
           imageUrls: _imagePaths,
           createdAt: DateTime.now(),
+          likes: 0,      // ADD THIS
+          comments: 0,   // ADD THIS
+          likedBy: [],   // ADD THIS
         );
 
-        await _dbService.createCommunityPost(post);
+        // Save to Firestore WITH the ID field included
+        await FirebaseFirestore.instance
+            .collection('community_posts')
+            .doc(postId)
+            .set({
+              ...post.toMap(),
+              'id': postId, // CRITICAL: Ensure ID is in the document
+            });
 
-        // FIXED: Update total posts using increment method
+        // Update user stats - total posts (using co2Saved field as totalPosts)
         await _dbService.incrementTotalPosts(user.uid);
+      } else{
+        //UPDATE EXISTING POST logic (Move this OUT of the userData check)
+          await FirebaseFirestore.instance
+            .collection('community_posts')
+            .doc(widget.post!.id)
+            .update({
+          'content': _contentController.text.trim(),
+          'category': _selectedCategory,
+          'imageUrls': _imagePaths,
+        });
       }
 
         // Update user stats - total posts (using co2Saved field as totalPosts)
@@ -308,14 +342,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   itemBuilder: (context, index) {
                     return Stack(
                       children: [
-                        ClipRRect(
+                        // Using your custom widget handles the logic automatically
+                        NetworkOrFileImage(
+                          imagePath: _imagePaths[index],
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(_imagePaths[index]),
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
                         ),
                         Positioned(
                           top: 4,

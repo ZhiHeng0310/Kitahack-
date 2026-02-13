@@ -7,6 +7,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../widgets/network_or_file_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserModel? userModel;
@@ -50,20 +51,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (image == null) return;
 
-      // Save image locally
-      final savedPath = await _dbService.saveImageLocally(
+      setState(() => _isLoading = true);
+
+      // Upload to ImgBB
+      final imageUrl = await _dbService.uploadImage(
         File(image.path),
-        'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        'profile_pictures',
       );
 
       setState(() {
-        _localImagePath = savedPath;
+        _localImagePath = imageUrl;
+        _isLoading = false;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Profile picture uploaded!'),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+      }
     } catch (e) {
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting image: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppTheme.errorRed,
           ),
         );
@@ -154,9 +168,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: CircleAvatar(
                       radius: 60,
                       backgroundColor: AppTheme.primaryGreen,
-                      backgroundImage: _localImagePath != null
-                          ? FileImage(File(_localImagePath!))
-                          : null,
                       child: _localImagePath == null
                           ? Text(
                               (_nameController.text.isNotEmpty
@@ -169,7 +180,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : null,
+                          : ClipOval(
+                              child: NetworkOrFileImage(
+                                imagePath: _localImagePath!,
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                     ),
                   ),
                   Positioned(

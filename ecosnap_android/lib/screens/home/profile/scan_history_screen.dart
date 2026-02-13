@@ -6,6 +6,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../widgets/network_or_file_image.dart';
 import 'package:ecosnap/screens/home/scan_result_screen.dart';
 
 class ScanHistoryScreen extends StatelessWidget {
@@ -103,17 +104,10 @@ class _ScanHistoryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: scan.imagePath.isNotEmpty
-                    ? ClipRRect(
+                    ? NetworkOrFileImage(
+                        imagePath: scan.imagePath,
+                        fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(scan.imagePath),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.image,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
                       )
                     : const Icon(Icons.image, size: 40, color: Colors.grey),
               ),

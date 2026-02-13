@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
+import '../../services/auth_service.dart';
+import '../../services/chat_service.dart';
 import '../../services/database_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import '../../widgets/network_or_file_image.dart';
 import 'marketplace/create_product_screen.dart';
 import 'marketplace/product_detail_screen.dart';
+import 'chat/chat_list_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -33,6 +39,62 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       appBar: AppBar(
         title: const Text('Marketplace'),
         actions: [
+          // Message Icon with UNREAD notification badge
+          StreamBuilder<int>(
+            stream: () {
+              final authService = Provider.of<AuthService>(context, listen: false);
+              final userId = authService.currentUser?.uid ?? '';
+              return userId.isNotEmpty 
+                  ? ChatService().getUnreadCountStream(userId) // NEW: Only count unread
+                  : Stream.value(0);
+            }(),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.message),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ChatListScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0) // Only show badge for unread messages
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount > 9 ? '9+' : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
@@ -178,17 +240,16 @@ class _ProductCard extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 color: Colors.grey[200],
-                child: product.imageUrls.isNotEmpty &&
-                        File(product.imageUrls.first).existsSync()
-                    ? Image.file(
-                        File(product.imageUrls.first),
-                        fit: BoxFit.cover,
-                      )
-                    : const Icon(
-                        Icons.image,
-                        size: 40,
-                        color: Colors.grey,
-                      ),
+                child: product.imageUrls.isNotEmpty 
+                  ? NetworkOrFileImage(
+                      imagePath: product.imageUrls.first,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(
+                      Icons.image,
+                      size: 40,
+                      color: Colors.grey,
+                    ),
               ),
             ),
             

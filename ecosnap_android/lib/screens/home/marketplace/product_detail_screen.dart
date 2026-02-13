@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../../widgets/network_or_file_image.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../services/chat_service.dart';
+import 'package:ecosnap/screens/home/chat/chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -142,7 +145,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         setState(() => _currentImageIndex = index);
                       },
                       itemBuilder: (context, index) {
-                        // ADDED: Safety check
                         if (index >= widget.product.imageUrls.length) {
                           return Container(
                             color: Colors.grey[200],
@@ -150,37 +152,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           );
                         }
                         
-                        final imagePath = widget.product.imageUrls[index];
-                        
-                        // ADDED: Check if file exists
-                        final imageFile = File(imagePath);
-                        
-                        return imageFile.existsSync()
-                            ? Image.file(
-                                imageFile,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.broken_image, size: 80),
-                                ),
-                              )
-                            : Container(
-                                color: Colors.grey[200],
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.broken_image, size: 80, color: Colors.grey),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Image not found',
-                                      style: TextStyle(
-                                        color: AppTheme.darkGray.withOpacity(0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
+                        return NetworkOrFileImage(
+                          imagePath: widget.product.imageUrls[index],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        );
                       },
                     ),
                     if (widget.product.imageUrls.length > 1)
@@ -312,73 +288,82 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
+                  FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(widget.product.sellerId)
+                        .get(),
+                    builder: (context, snapshot) {
+                      String? photoUrl;
+
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        final userData =
+                            snapshot.data!.data() as Map<String, dynamic>;
+                        photoUrl = userData['photoUrl'];
+                      }
+
+                      return Column(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: AppTheme.primaryGreen,
-                            radius: 25,
-                            child: Text(
-                              ((widget.product.sellerName ?? '').isNotEmpty
-                                      ? widget.product.sellerName![0]
-                                      : '?')
-                                  .toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: AppTheme.primaryGreen,
+                                    radius: 25,
+                                    child: photoUrl != null
+                                        ? ClipOval(
+                                            child: NetworkOrFileImage(
+                                              imagePath: photoUrl,
+                                              width: 50,
+                                              height: 50,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          )
+                                        : Text(
+                                            widget.product.sellerName[0]
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.product.sellerName,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Listed ${DateFormat('MMM dd, yyyy').format(widget.product.createdAt)}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppTheme.darkGray
+                                                .withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.product.sellerName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Listed ${DateFormat('MMM dd, yyyy').format(widget.product.createdAt)}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.darkGray.withOpacity(0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          const SizedBox(height: 24),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Contact Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Contact feature coming soon!'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.message),
-                      label: const Text('Contact Seller'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),

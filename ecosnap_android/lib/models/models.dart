@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum MessageType { text, image, product }
+
 // Scan Result Model
 class ScanResult {
   final String id;
@@ -205,6 +207,7 @@ class Product {
   final DateTime createdAt;
   final int views;
   final int saves;
+  final String? sellerPhotoUrl;
 
   Product({
     required this.id,
@@ -220,6 +223,7 @@ class Product {
     required this.createdAt,
     this.views = 0,
     this.saves = 0,
+    this.sellerPhotoUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -316,6 +320,131 @@ class CommunityPost {
       likes: map['likes'] ?? 0,
       comments: map['comments'] ?? 0,
       likedBy: List<String>.from(map['likedBy'] ?? []),
+    );
+  }
+}
+
+// Chat Message Model
+class ChatMessage {
+  final String id;
+  final String chatId;
+  final String senderId;
+  final String senderName;
+  final String message;
+  final DateTime timestamp;
+  final bool isRead;
+  final DateTime? readAt;
+  final String? productId; // For product sharing
+  final String? productTitle;
+  final String? productImage;
+  final double? productPrice;
+  final MessageType type;
+  final String? imageUrl;
+
+  ChatMessage({
+    required this.id,
+    required this.chatId,
+    required this.senderId,
+    required this.senderName,
+    required this.message,
+    required this.timestamp,
+    this.isRead = false,
+    this.readAt,
+    this.productId,
+    this.productTitle,
+    this.productImage,
+    this.productPrice,
+    required this.type,
+    this.imageUrl,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'chatId': chatId,
+      'senderId': senderId,
+      'senderName': senderName,
+      'message': message,
+      'timestamp': Timestamp.fromDate(timestamp),
+      'isRead': isRead,
+      'readAt' : readAt != null ? Timestamp.fromDate(readAt!) : null,
+      'productId': productId,
+      'productTitle': productTitle,
+      'productImage': productImage,
+      'productPrice': productPrice,
+      'type' : type.name,
+      'imageUrl' : imageUrl,
+    };
+  }
+
+  factory ChatMessage.fromMap(Map<String, dynamic> map) {
+    return ChatMessage(
+      id: map['id'] ?? '',
+      chatId: map['chatId'] ?? '',
+      senderId: map['senderId'] ?? '',
+      senderName: map['senderName'] ?? '',
+      message: map['message'] ?? '',
+      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      isRead: map['isRead'] ?? false,
+      readAt: map['readAt'] != null ? (map['readAt'] as Timestamp).toDate() : null,
+      productId: map['productId'],
+      productTitle: map['productTitle'],
+      productImage: map['productImage'],
+      productPrice: map['productPrice']?.toDouble(),
+      type: MessageType.values.firstWhere(
+        (e) => e.name == (map['type'] ?? 'text'),
+        orElse: () => MessageType.text,
+      ),
+      imageUrl: map['imageUrl'],
+    );
+  }
+}
+
+// Chat Conversation Model
+class ChatConversation {
+  final String id;
+  final List<String> participantIds;
+  final List<String> participantNames;
+  final String lastMessage;
+  final DateTime lastMessageTime;
+  final String lastSenderId;
+  final int unreadCount;
+  final String? productId;
+
+  ChatConversation({
+    required this.id,
+    required this.participantIds,
+    required this.participantNames,
+    required this.lastMessage,
+    required this.lastMessageTime,
+    required this.lastSenderId,
+    this.unreadCount = 0,
+    this.productId,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'participantIds': participantIds,
+      'participantNames': participantNames,
+      'lastMessage': lastMessage,
+      'lastMessageTime': Timestamp.fromDate(lastMessageTime),
+      'lastSenderId': lastSenderId,
+      'unreadCount': unreadCount,
+      'productId': productId,
+    };
+  }
+
+  factory ChatConversation.fromMap(Map<String, dynamic> map) {
+    return ChatConversation(
+      id: map['id'] ?? '',
+      participantIds: List<String>.from(map['participantIds'] ?? []),
+      participantNames: List<String>.from(map['participantNames'] ?? []),
+      lastMessage: map['lastMessage'] ?? '',
+      lastMessageTime: (map['lastMessageTime'] as Timestamp).toDate(),
+      lastSenderId: map['lastSenderId'] ?? '',
+      unreadCount: map['unreadCount'] ?? 0,
+      productId: map['productId'],
     );
   }
 }

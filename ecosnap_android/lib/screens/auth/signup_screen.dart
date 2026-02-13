@@ -36,27 +36,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
+      
+      // Sign up user
       await authService.signUpWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
         _nameController.text.trim(),
       );
+
+      // Success - navigation will happen automatically via auth state change
+      // No need to show any message or manually navigate
       
-      if (mounted) {
-        Navigator.pop(context);
-      }
     } catch (e) {
+      // Only show error if signup actually failed
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
             backgroundColor: AppTheme.errorRed,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }

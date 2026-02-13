@@ -6,6 +6,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../widgets/network_or_file_image.dart';
 import 'package:ecosnap/screens/home/marketplace/create_product_screen.dart';
 import 'package:ecosnap/screens/home/marketplace/product_detail_screen.dart';
 
@@ -169,20 +170,14 @@ class _MyListingCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: product.imageUrls.isNotEmpty
-                    ? ClipRRect(
+                    ? NetworkOrFileImage(
+                        imagePath: product.imageUrls.first,
+                        fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          File(product.imageUrls.first),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.image,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                        ),
                       )
                     : const Icon(Icons.image, size: 40, color: Colors.grey),
               ),
+              
               const SizedBox(width: 12),
               
               // Info

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../widgets/network_or_file_image.dart';
 import 'package:ecosnap/screens/home/marketplace/product_detail_screen.dart';
 
 class SavedProductsScreen extends StatefulWidget {
@@ -114,26 +115,22 @@ class _SavedProductsScreenState extends State<SavedProductsScreen> {
                           children: [
                             // Product image
                             SizedBox(
-                                width: 100,
-                                height: 100,
-                                child: product.imageUrls.isNotEmpty &&
-                                        File(product.imageUrls.first).existsSync()
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                            File(product.imageUrls.first),
-                                            fit: BoxFit.cover,
-                                        ),
-                                        )
-                                    : Container(
+                              width: 100,
+                              height: 100,
+                              child: product.imageUrls.isNotEmpty
+                                  ? NetworkOrFileImage(
+                                      imagePath: product.imageUrls[0],
+                                      fit: BoxFit.cover,
+                                      borderRadius: BorderRadius.circular(8),
+                                    )
+                                  : Container(
+                                      decoration: BoxDecoration(
                                         color: Colors.grey[200],
-                                        child: const Icon(
-                                            Icons.image,
-                                            size: 50,
-                                        ),
-                                        ),
-                                ),
-
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.image, size: 50),
+                                    ),
+                            ),
                             // Product info
                             Expanded(
                               child: Padding(

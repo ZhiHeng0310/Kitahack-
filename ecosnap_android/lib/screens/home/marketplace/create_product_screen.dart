@@ -2,11 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
+import '../../../widgets/network_or_file_image.dart';
 
 class CreateProductScreen extends StatefulWidget {
   final Product? product; // For editing
@@ -77,24 +79,61 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
 
       if (images.isEmpty) return;
 
+      // Show loading
+      setState(() => _isLoading = true);
+
       final remainingSlots = 4 - _imagePaths.length;
       final imagesToAdd = images.take(remainingSlots).toList();
 
-      for (var image in imagesToAdd) {
-        final savedPath = await _dbService.saveImageLocally(
-          File(image.path),
-          'product_${DateTime.now().millisecondsSinceEpoch}_${_imagePaths.length}.jpg',
-        );
-        _imagePaths.add(savedPath);
-      }
-
-      setState(() {});
-    } catch (e) {
+      // Show upload progress
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting images: $e'),
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Text('Uploading ${imagesToAdd.length} image(s)...'),
+              ],
+            ),
+            duration: const Duration(seconds: 30),
+          ),
+        );
+      }
+
+      for (var image in imagesToAdd) {
+        // Upload to ImgBB - will return permanent URL
+        final imageUrl = await _dbService.uploadImage(
+          File(image.path),
+          'products', // folder name (not used by ImgBB but kept for consistency)
+        );
+        _imagePaths.add(imageUrl);
+      }
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Images uploaded successfully!'),
+            backgroundColor: AppTheme.successGreen,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
             backgroundColor: AppTheme.errorRed,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -290,12 +329,34 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(_imagePaths[index]),
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                          child: _imagePaths[index].startsWith('http')
+                              ? Image.network(
+                                  _imagePaths[index],
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.error),
+                                  ),
+                                )
+                              : Image.file(
+                                  File(_imagePaths[index]),
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                         Positioned(
                           top: 4,
@@ -318,7 +379,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                         ),
                       ],
                     );
-                  },
+                  }
                 ),
               const SizedBox(height: 24),
 

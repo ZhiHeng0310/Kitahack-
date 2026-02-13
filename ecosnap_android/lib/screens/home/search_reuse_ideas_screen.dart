@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../utils/constants.dart';
 
@@ -42,52 +43,122 @@ class _SearchReuseIdeasScreenState extends State<SearchReuseIdeasScreen> {
       if (entry.key.toLowerCase().contains(query.toLowerCase()) ||
           query.toLowerCase().contains(entry.key.toLowerCase())) {
         searchResults = entry.value;
+        print('✅ Found ${searchResults.length} ideas for: ${entry.key}');
         break;
       }
     }
 
-    // If no exact match, show generic ideas
+    // If no exact match, show generic ideas with proper YouTube URLs
     if (searchResults.isEmpty) {
+      final encodedQuery = Uri.encodeComponent(query);
       searchResults = [
         {
           'title': 'Storage Container',
           'difficulty': 'Easy',
           'description': 'Use for organizing small items',
           'estimatedValue': {'min': 5, 'max': 10},
-          'youtubeUrl': 'https://www.youtube.com/results?search_query=$query+reuse+ideas',
+          'youtubeUrl': 'https://www.youtube.com/results?search_query=$encodedQuery+reuse+ideas',
         },
         {
           'title': 'DIY Project',
           'difficulty': 'Medium',
           'description': 'Get creative with your own design',
           'estimatedValue': {'min': 10, 'max': 25},
-          'youtubeUrl': 'https://www.youtube.com/results?search_query=$query+diy+tutorial',
+          'youtubeUrl': 'https://www.youtube.com/results?search_query=$encodedQuery+diy+upcycle',
         },
         {
           'title': 'Upcycled Art',
           'difficulty': 'Hard',
           'description': 'Transform into decorative piece',
           'estimatedValue': {'min': 15, 'max': 40},
-          'youtubeUrl': 'https://www.youtube.com/results?search_query=$query+upcycle+craft',
+          'youtubeUrl': 'https://www.youtube.com/results?search_query=$encodedQuery+craft+tutorial',
         },
       ];
     }
   }
 
   Future<void> _openYouTube(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open YouTube'),
-            backgroundColor: AppTheme.errorRed,
-          ),
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No YouTube URL available'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
+    }
+
+    try {
+      print('🎥 Attempting to open: $url'); // Debug
+      
+      final uri = Uri.parse(url);
+      
+      if (await canLaunchUrl(uri)) {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
         );
+        
+        print('✅ Launch result: $launched'); // Debug
+        
+        if (!launched && context.mounted) {
+          _showUrlDialog(url);
+        }
+      } else {
+        print('❌ Cannot launch URL: $url'); // Debug
+        if (context.mounted) {
+          _showUrlDialog(url);
+        }
+      }
+    } catch (e) {
+      print('❌ Error opening YouTube: $e'); // Debug
+      if (context.mounted) {
+        _showUrlDialog(url);
       }
     }
+  }
+
+  void _showUrlDialog(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('YouTube Tutorial'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Copy this URL to watch the tutorial:'),
+            const SizedBox(height: 12),
+            SelectableText(
+              url,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: url));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('URL copied to clipboard!'),
+                  backgroundColor: AppTheme.successGreen,
+                ),
+              );
+            },
+            child: const Text('Copy URL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -235,9 +306,25 @@ class _SearchReuseIdeasScreenState extends State<SearchReuseIdeasScreen> {
                   ),
                   const SizedBox(height: 16),
                   ...searchResults.map((idea) {
+                    // CRITICAL: Extract YouTube URL here
+                    final youtubeUrl = idea['youtubeUrl'] as String? ?? '';
+                    
                     return _IdeaCard(
                       idea: idea,
-                      onTutorialTap: () => _openYouTube(idea['youtubeUrl']),
+                      onTutorialTap: () {
+                        print('🎬 Button clicked, URL: $youtubeUrl'); // Debug
+                        if (youtubeUrl.isNotEmpty) {
+                          _openYouTube(youtubeUrl);
+                        } else {
+                          print('❌ Empty YouTube URL'); // Debug
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('YouTube URL not available'),
+                              backgroundColor: AppTheme.errorRed,
+                            ),
+                          );
+                        }
+                      },
                     );
                   }).toList(),
                 ],
@@ -308,8 +395,10 @@ class _IdeaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estimatedValue = idea['estimatedValue'] as Map<String, dynamic>;
-    final difficulty = idea['difficulty'] as String;
+    final title = idea['title'] as String? ?? 'Unknown';
+    final difficulty = idea['difficulty'] as String? ?? 'Medium';
+    final description = idea['description'] as String? ?? '';
+    final estimatedValue = idea['estimatedValue'] as Map<String, dynamic>? ?? {'min': 0, 'max': 0};
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -322,7 +411,7 @@ class _IdeaCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    idea['title'],
+                    title,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -349,7 +438,7 @@ class _IdeaCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              idea['description'],
+              description,
               style: TextStyle(
                 fontSize: 14,
                 color: AppTheme.darkGray.withOpacity(0.8),

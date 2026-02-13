@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/network_or_file_image.dart';
 import 'community/create_post_screen.dart';
 import 'community/post_detail_screen.dart';
 
@@ -153,10 +155,6 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final currentUserId = authService.currentUser?.uid ?? '';
-    final isLiked = post.likedBy.contains(currentUserId);
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -174,138 +172,116 @@ class _PostCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // User Info
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppTheme.primaryGreen,
-                    child: Text(
-                      (post.userName.isNotEmpty
-                              ? post.userName[0]
-                              : '?')
-                          .toUpperCase(),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          post.userName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          DateFormat('MMM dd, yyyy').format(post.createdAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.darkGray.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getCategoryColor(post.category).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _getCategoryLabel(post.category),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: _getCategoryColor(post.category),
+              // Header with profile picture
+              FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(post.userId)
+                    .get(),
+                builder: (context, snapshot) {
+                  String? photoUrl;
+                  if (snapshot.hasData && snapshot.data!.exists) {
+                    final userData = snapshot.data!.data() as Map<String, dynamic>;
+                    photoUrl = userData['photoUrl'];
+                  }
+
+                  return Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppTheme.primaryGreen,
+                        radius: 20,
+                        child: photoUrl != null
+                            ? ClipOval(
+                                child: NetworkOrFileImage(
+                                  imagePath: photoUrl,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Text(
+                                post.userName[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post.userName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              DateFormat('MMM dd, yyyy').format(post.createdAt),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.darkGray.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(post.category).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getCategoryLabel(post.category),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _getCategoryColor(post.category),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
-              
+
               // Content
               Text(
                 post.content,
-                style: const TextStyle(fontSize: 14),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14),
               ),
-              
-              // Images
-              if (post.imageUrls.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: post.imageUrls.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            post.imageUrls[index],
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 200,
-                              height: 200,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image, size: 40),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-              
               const SizedBox(height: 12),
-              
-              // Actions
+
+              // Stats (live likes and comments)
               Row(
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_outline,
-                      color: isLiked ? Colors.red : AppTheme.darkGray,
-                    ),
-                    onPressed: () {
-                      final dbService = DatabaseService();
-                      dbService.toggleLikePost(post.id, currentUserId, isLiked);
-                    },
-                  ),
-                  Text('${post.likes}'),
+                  const Icon(Icons.favorite, size: 16, color: AppTheme.errorRed),
+                  const SizedBox(width: 4),
+                  Text('${post.likes}', style: const TextStyle(fontSize: 12)),
                   const SizedBox(width: 16),
-                  IconButton(
-                    icon: const Icon(Icons.comment_outlined),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PostDetailScreen(post: post),
-                        ),
-                      );
-                    },
-                  ),
-                  Text('${post.comments}'),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.share_outlined),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Share feature coming soon!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                  const Icon(Icons.comment, size: 16, color: AppTheme.primaryGreen),
+                  const SizedBox(width: 4),
+
+                  // LIVE comment count
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('community_posts')
+                        .doc(post.id)
+                        .collection('comments')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      final commentCount = snapshot.hasData ? snapshot.data!.docs.length : post.comments;
+                      return Text('$commentCount', style: const TextStyle(fontSize: 12));
                     },
                   ),
                 ],

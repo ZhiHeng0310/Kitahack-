@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/models.dart';
 import '../../utils/constants.dart';
+import '../../widgets/network_or_file_image.dart';
 import 'package:flutter/services.dart';
 import 'package:ecosnap/screens/home/community/create_post_screen.dart';
 
@@ -12,71 +13,31 @@ class ReuseIdeasScreen extends StatelessWidget {
   const ReuseIdeasScreen({super.key, required this.scanResult});
 
   Future<void> _openYouTube(BuildContext context, String url) async {
-  try {
-    final uri = Uri.parse(url);
-    
-    // Try to launch
-    final canLaunch = await canLaunchUrl(uri);
-    
-    if (canLaunch) {
+    try {
+      final uri = Uri.parse(url);
+
       final launched = await launchUrl(
         uri,
-        mode: LaunchMode.externalApplication,
+        mode: LaunchMode.platformDefault,
       );
-      
+
       if (!launched && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Opening: $url'),
-            action: SnackBarAction(
-              label: 'Copy',
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: url));
-              },
-            ),
+          const SnackBar(
+            content: Text('Could not open YouTube'),
           ),
         );
       }
-    } else {
+    } catch (e) {
       if (context.mounted) {
-        // Show URL so user can copy it
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('YouTube Tutorial'),
-            content: SelectableText(url),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: url));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link copied!')),
-                  );
-                },
-                child: const Text('Copy Link'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open YouTube'),
           ),
         );
       }
-    }
-  } catch (e) {
-    print('Error opening YouTube: $e');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not open YouTube. Link: $url'),
-          duration: const Duration(seconds: 4),
-        ),
-      );
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -95,12 +56,10 @@ class ReuseIdeasScreen extends StatelessWidget {
               height: 200,
               color: Colors.grey[200],
               child: scanResult.imagePath.isNotEmpty
-                  ? Image.file(
-                      File(scanResult.imagePath),
+                  ? NetworkOrFileImage(
+                      imagePath: scanResult.imagePath,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.image, size: 60, color: Colors.grey);
-                      },
+                      height: 200,
                     )
                   : const Icon(Icons.image, size: 60, color: Colors.grey),
             ),
