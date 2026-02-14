@@ -261,32 +261,7 @@ apply plugin: 'com.google.gms.google-services'
 
 Since you need an on-device model without using external AI APIs, you'll need to create or download a TensorFlow Lite model.
 
-### Option 1: Use Pre-trained Model (Recommended for Testing)
-
-1. Download MobileNet V2 model:
-```bash
-# Download MobileNetV2 for image classification
-wget https://storage.googleapis.com/download.tensorflow.org/models/tflite/mobilenet_v2_1.0_224_quant_2018_06_01.zip
-unzip mobilenet_v2_1.0_224_quant_2018_06_01.zip
-```
-
-2. Place the model file in: `assets/models/waste_classifier.tflite`
-
-3. Create labels file: `assets/models/labels.txt`
-```
-Glass Bottle:Glass:Clean
-Plastic Container:Plastic:Clean
-Cardboard Box:Cardboard:Clean
-Tin Can:Metal:Clean
-Paper:Paper:Clean
-Plastic Bag:Plastic:Damaged
-Food Waste:Organic:Contaminated
-E-waste:Electronic:Good
-Aluminum Can:Metal:Clean
-Styrofoam:Plastic:Broken
-```
-
-### Option 2: Train Custom Model with TensorFlow
+### Train Custom Model with TensorFlow
 
 For a production app, you should train a custom model. Here's a basic guide:
 
@@ -471,6 +446,8 @@ org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=512m
 - Marketplace for selling upcycled items
 - Community posts and engagement
 - User impact tracking
+- Real-time user messaging
+- Community networking & collaboration
 
 ### 🎨 UI/UX
 - Clean green and white theme
@@ -510,8 +487,6 @@ org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=512m
 ## 🤝 Contributing
 
 This is a hackathon/competition project. Features to add:
-- Video tutorials integration
-- Real-time chat for marketplace
 - Advanced search and filters
 - Push notifications
 - Offline mode
@@ -534,4 +509,4 @@ For issues or questions, refer to:
 
 ---
 
-**Built with ❤️ using Google tools only - No external AI APIs!**
+**Built with ❤️ using Google tools**
