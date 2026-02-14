@@ -10,6 +10,7 @@ import 'community_screen.dart';
 import 'profile_screen.dart';
 import 'find_centers_screen.dart';
 import 'search_reuse_ideas_screen.dart';
+import 'user/search_users_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,6 +118,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ScanHistoryScreen()),
+              );
+            },
+          ),
+          // Search Friends Icon
+          IconButton(
+            icon: const Icon(Icons.person_search),
+            tooltip: 'Search Friends',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SearchUsersScreen(),
+                ),
               );
             },
           ),

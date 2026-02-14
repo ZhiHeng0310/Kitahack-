@@ -11,16 +11,22 @@ class AuthService {
 
   Future<UserCredential> signUpWithEmail(String email, String password, String displayName) async {
     try {
+      print('🔐 Creating user account...'); // Debug
+      
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
+      print('👤 Updating display name...'); // Debug
+      
       // CRITICAL: Update display name in Firebase Auth FIRST
       await credential.user?.updateDisplayName(displayName);
       
       // Reload user to get updated profile
       await credential.user?.reload();
+      
+      print('📄 Creating user document...'); // Debug
       
       // Get fresh user data
       final updatedUser = _auth.currentUser;
@@ -30,8 +36,11 @@ class AuthService {
         await _createUserDocument(updatedUser);
       }
 
+      print('✅ Signup complete!'); // Debug
+      
       return credential;
     } catch (e) {
+      print('❌ Signup failed: $e'); // Debug
       throw _handleAuthException(e);
     }
   }
@@ -70,19 +79,32 @@ class AuthService {
   }
 
   Future<void> _createUserDocument(User user) async {
-    final userModel = UserModel(
-      uid: user.uid,
-      email: user.email!,
-      displayName: user.displayName ?? user.email!.split('@')[0], // Use displayName from Firebase Auth
-      photoUrl: user.photoURL,
-      createdAt: DateTime.now(),
-      stats: UserStats(),
-    );
+    try {
+      print('📝 Creating document for user: ${user.uid}'); // Debug
+      
+      final userModel = UserModel(
+        uid: user.uid,
+        email: user.email!,
+        displayName: user.displayName ?? user.email!.split('@')[0],
+        photoUrl: user.photoURL,
+        createdAt: DateTime.now(),
+        stats: UserStats(),
+        bio: null, // Initialize as null
+        connections: [], // Initialize empty
+        followers: [], // Initialize empty
+        following: [], // Initialize empty
+      );
 
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .set(userModel.toMap(), SetOptions(merge: true));
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(userModel.toMap(), SetOptions(merge: true));
+          
+      print('✅ User document created'); // Debug
+    } catch (e) {
+      print('❌ Error creating user document: $e'); // Debug
+      rethrow;
+    }
   }
 
   Future<UserModel?> getUserDocument(String uid) async {

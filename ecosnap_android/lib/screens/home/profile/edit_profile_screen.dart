@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/database_service.dart';
+import '../../../services/user_service.dart';
 import '../../../models/models.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/network_or_file_image.dart';
@@ -21,9 +22,11 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _bioController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final DatabaseService _dbService = DatabaseService();
-  
+  final UserService _userService = UserService();
+
   String? _localImagePath;
   bool _isLoading = false;
 
@@ -31,12 +34,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _nameController.text = widget.userModel?.displayName ?? '';
+    _bioController.text = widget.userModel?.bio ?? '';
     _localImagePath = widget.userModel?.photoUrl;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -96,27 +101,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (userId == null) throw Exception('User not found');
 
-      // Use the auth service method instead of direct Firestore update
-      await authService.updateUserProfile(
-        userId,
-        displayName: _nameController.text.trim(),
-        photoUrl: _localImagePath,
-      );
+      // Update Firestore with all fields including bio
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'displayName': _nameController.text.trim(),
+        'photoUrl': _localImagePath,
+        'bio': _bioController.text.trim(),
+      });
+
+      // Update Firebase Auth display name
+      await authService.currentUser?.updateDisplayName(_nameController.text.trim());
+      if (_localImagePath != null) {
+        await authService.currentUser?.updatePhotoURL(_localImagePath);
+      }
+      await authService.currentUser?.reload();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Profile updated successfully!'),
             backgroundColor: AppTheme.successGreen,
+            duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // CHANGED: Return true to indicate success
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppTheme.errorRed,
           ),
         );
@@ -237,6 +250,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 24),
               
+              // Bio Field
+              TextFormField(
+                controller: _bioController,
+                maxLines: 3,
+                maxLength: 150,
+                decoration: const InputDecoration(
+                  labelText: 'Bio',
+                  prefixIcon: Icon(Icons.info_outline),
+                  helperText: 'Tell others about yourself',
+                  alignLabelWithHint: true,
+                ),
+                validator: (value) {
+                  if (value != null && value.length > 150) {
+                    return 'Bio must be 150 characters or less';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
               // Email (Read-only)
               TextFormField(
                 initialValue: widget.userModel?.email ?? '',

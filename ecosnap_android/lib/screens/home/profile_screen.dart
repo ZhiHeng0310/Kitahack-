@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -176,14 +177,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () async{
-              await Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => EditProfileScreen(userModel: _userModel),
                 ),
               );
-              await _loadUserData();
+              
+              // Reload data if profile was updated
+              if (result == true) {
+                await _loadUserData();
+                setState(() {}); // Force rebuild
+              }
             },
           ),
         ],
@@ -208,14 +214,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: AppTheme.primaryGreen,
-                  child: _userModel?.photoUrl != null
+                  child: _userModel?.photoUrl != null && _userModel!.photoUrl!.isNotEmpty
                       ? ClipOval(
-                          child: NetworkOrFileImage(
-                            imagePath: _userModel!.photoUrl!,
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
+                          child: _userModel!.photoUrl!.startsWith('http')
+                              ? Image.network(
+                                  _userModel!.photoUrl!,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(child: CircularProgressIndicator());
+                                  },
+                                  errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
+                                )
+                              : Image.file(
+                                  File(_userModel!.photoUrl!),
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
+                                ),
                         )
                       : _buildDefaultAvatar(),
                 ),

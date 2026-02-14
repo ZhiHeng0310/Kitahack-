@@ -104,16 +104,24 @@ class UserModel {
   final String email;
   final String? displayName;
   final String? photoUrl;
+  final String? bio;
   final DateTime createdAt;
   final UserStats stats;
+  final List<String> connections;
+  final List<String> followers;
+  final List<String> following;
 
   UserModel({
     required this.uid,
     required this.email,
     this.displayName,
     this.photoUrl,
+    this.bio,
     required this.createdAt,
     required this.stats,
+    this.connections = const [],
+    this.followers = const [],
+    this.following = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -122,8 +130,12 @@ class UserModel {
       'email': email,
       'displayName': displayName,
       'photoUrl': photoUrl,
+      'bio': bio,
       'createdAt': Timestamp.fromDate(createdAt),
       'stats': stats.toMap(),
+      'connections': connections, 
+      'followers': followers, 
+      'following': following, 
     };
   }
 
@@ -133,8 +145,13 @@ class UserModel {
       email: map['email'] ?? '',
       displayName: map['displayName'],
       photoUrl: map['photoUrl'],
+      bio: map['bio'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       stats: UserStats.fromMap(map['stats'] ?? {}),
+      connections: List<String>.from(map['connections'] ?? []), 
+      followers: List<String>.from(map['followers'] ?? []), 
+      following: List<String>.from(map['following'] ?? []), 
+
     );
   }
 }

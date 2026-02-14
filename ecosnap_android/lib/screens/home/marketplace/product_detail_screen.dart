@@ -9,6 +9,7 @@ import '../../../models/models.dart';
 import '../../../utils/constants.dart';
 import '../../../services/chat_service.dart';
 import 'package:ecosnap/screens/home/chat/chat_screen.dart';
+import '../user/user_profile_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -337,11 +338,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          widget.product.sellerName,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                        GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => UserProfileScreen(userId: widget.product.sellerId),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            widget.product.sellerName,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.primaryGreen,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(height: 4),

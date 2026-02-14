@@ -8,6 +8,7 @@ import '../../../models/models.dart';
 import '../../../utils/constants.dart';
 import '../../../widgets/network_or_file_image.dart';
 import 'chat_screen.dart';
+import '../user/user_profile_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -98,26 +99,36 @@ class ChatListScreen extends StatelessWidget {
                       }
 
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.primaryGreen,
-                          radius: 28,
-                          child: photoUrl != null
-                              ? ClipOval(
-                                  child: NetworkOrFileImage(
-                                    imagePath: photoUrl,
-                                    width: 56,
-                                    height: 56,
-                                    fit: BoxFit.cover,
+                        leading: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => UserProfileScreen(userId: otherUserId),
+                              ),
+                            );
+                          },
+                          child: CircleAvatar(
+                            backgroundColor: AppTheme.primaryGreen,
+                            radius: 28,
+                            child: photoUrl != null
+                                ? ClipOval(
+                                    child: NetworkOrFileImage(
+                                      imagePath: photoUrl,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Text(
+                                    otherUserName[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                )
-                              : Text(
-                                  otherUserName[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                          ),
                         ),
                         title: Text(
                           otherUserName,

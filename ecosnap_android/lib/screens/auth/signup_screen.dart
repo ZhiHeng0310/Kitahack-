@@ -37,6 +37,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       
+      print('📝 Starting signup...'); // Debug
+      
       // Sign up user
       await authService.signUpWithEmail(
         _emailController.text.trim(),
@@ -44,11 +46,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _nameController.text.trim(),
       );
 
-      // Success - navigation will happen automatically via auth state change
-      // No need to show any message or manually navigate
+      print('✅ Signup completed successfully'); // Debug
+      
+      // Don't set loading to false - let auth state change handle navigation
+      // The main.dart StreamBuilder will automatically navigate to home
       
     } catch (e) {
-      // Only show error if signup actually failed
+      print('❌ Signup error: $e'); // Debug
+      
+      // Only show error and stop loading if signup actually failed
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../widgets/network_or_file_image.dart';
 import 'community/create_post_screen.dart';
 import 'community/post_detail_screen.dart';
+import 'user/user_profile_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -212,11 +213,22 @@ class _PostCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              post.userName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UserProfileScreen(userId: post.userId),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                post.userName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: AppTheme.primaryGreen,
+                                ),
                               ),
                             ),
                             Text(
