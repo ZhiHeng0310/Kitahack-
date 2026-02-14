@@ -44,9 +44,36 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             stream: () {
               final authService = Provider.of<AuthService>(context, listen: false);
               final userId = authService.currentUser?.uid ?? '';
-              return userId.isNotEmpty 
-                  ? ChatService().getUnreadCountStream(userId) // NEW: Only count unread
-                  : Stream.value(0);
+              
+              if (userId.isEmpty) {
+                return Stream.value(0);
+              }
+              
+              // Count actual unread messages across all chats
+              return FirebaseFirestore.instance
+                  .collection('chats')
+                  .where('participantIds', arrayContains: userId)
+                  .snapshots()
+                  .asyncMap((chatSnapshot) async {
+                    int totalUnread = 0;
+                    
+                    for (var chatDoc in chatSnapshot.docs) {
+                      final chatId = chatDoc.id;
+                      
+                      // Count unread messages in this chat
+                      final unreadMessages = await FirebaseFirestore.instance
+                          .collection('chats')
+                          .doc(chatId)
+                          .collection('messages')
+                          .where('senderId', isNotEqualTo: userId)
+                          .where('isRead', isEqualTo: false)
+                          .get();
+                      
+                      totalUnread += unreadMessages.docs.length;
+                    }
+                    
+                    return totalUnread;
+                  });
             }(),
             builder: (context, snapshot) {
               final unreadCount = snapshot.data ?? 0;
@@ -64,7 +91,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       );
                     },
                   ),
-                  if (unreadCount > 0) // Only show badge for unread messages
+                  if (unreadCount > 0)
                     Positioned(
                       right: 8,
                       top: 8,
