@@ -35,46 +35,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUserId = authService.currentUser?.uid ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Marketplace'),
         actions: [
           // Message Icon with UNREAD notification badge
           StreamBuilder<int>(
-            stream: () {
-              final authService = Provider.of<AuthService>(context, listen: false);
-              final userId = authService.currentUser?.uid ?? '';
-              
-              if (userId.isEmpty) {
-                return Stream.value(0);
-              }
-              
-              // Count actual unread messages across all chats
-              return FirebaseFirestore.instance
-                  .collection('chats')
-                  .where('participantIds', arrayContains: userId)
-                  .snapshots()
-                  .asyncMap((chatSnapshot) async {
-                    int totalUnread = 0;
-                    
-                    for (var chatDoc in chatSnapshot.docs) {
-                      final chatId = chatDoc.id;
-                      
-                      // Count unread messages in this chat
-                      final unreadMessages = await FirebaseFirestore.instance
-                          .collection('chats')
-                          .doc(chatId)
-                          .collection('messages')
-                          .where('senderId', isNotEqualTo: userId)
-                          .where('isRead', isEqualTo: false)
-                          .get();
-                      
-                      totalUnread += unreadMessages.docs.length;
-                    }
-                    
-                    return totalUnread;
-                  });
-            }(),
+            stream: currentUserId.isNotEmpty
+                ? _getUnreadCountStream(currentUserId) // Use local method
+                : Stream.value(0),
             builder: (context, snapshot) {
               final unreadCount = snapshot.data ?? 0;
 
@@ -82,13 +54,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.message),
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      // Navigate and wait for return
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const ChatListScreen(),
                         ),
                       );
+                      // Force rebuild after returning
+                      if (mounted) setState(() {});
                     },
                   ),
                   if (unreadCount > 0)
@@ -237,6 +212,32 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         ],
       ),
     );
+  }
+
+  // Local method to get unread count stream
+  Stream<int> _getUnreadCountStream(String userId) {
+    return FirebaseFirestore.instance
+        .collection('chats')
+        .where('participantIds', arrayContains: userId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          int totalUnread = 0;
+
+          for (var chatDoc in snapshot.docs) {
+            final unreadMessages = await FirebaseFirestore.instance
+                .collection('chats')
+                .doc(chatDoc.id)
+                .collection('messages')
+                .where('senderId', isNotEqualTo: userId)
+                .where('isRead', isEqualTo: false)
+                .get();
+
+            totalUnread += unreadMessages.docs.length;
+          }
+
+          print('🔴 Marketplace unread count: $totalUnread'); // Debug
+          return totalUnread;
+        });
   }
 }
 
