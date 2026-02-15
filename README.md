@@ -1,242 +1,189 @@
-# 🌱 EcoSnap — Refined & Improved Feature Design
+# 🌱 EcoSnap - Smart Waste Management App
 
-## 🎯 Core Idea (Reframed Clearly)
+> An AI-powered mobile application that helps users make sustainable decisions about waste through scanning, reusing, recycling, and community engagement.
 
-> Scan an item → AI analyses its potential → Decide the **best value path**:
-> **Reuse → Recycle → Sell → Community**, supported by community and tutorials.
-
-This avoids feature collision and makes the app logic *very clear*.
-
----
-
-## 🧠 1. AI Scan & Product Analysis (Single Source of Truth)
-
-### When user scans an item, the AI produces **ONE analysis result**, not many separate features.
-
-### 🔍 AI Analysis Output
-
-```
-Item Detected: Glass Bottle
-Material: Glass
-Condition: Reusable
-Confidence: 93%
-```
-
-Then the system branches logically 👇
+[![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-Latest-orange.svg)](https://firebase.google.com/)
+[![License](https://img.shields.io/badge/License-Educational-green.svg)](LICENSE)
 
 ---
 
-## 🔄 2. Value Path Decision System (No Collision)
+## 📋 Documentation Guide
 
-After analysis, the app decides **what can be done** with the item.
+This project has comprehensive documentation split into focused files for easy navigation:
 
-### Path A — ❌ Cannot Be Reused
+### 🚀 Getting Started
+- **[QUICK_START.md](QUICK_START.md)** - Fast setup guide (5 minutes!)
+- **[INSTALLATION.md](INSTALLATION.md)** - Detailed installation steps
+- **[FIREBASE_SETUP.md](FIREBASE_SETUP.md)** - Complete Firebase configuration
+- **[IMAGE_STORAGE_SETUP.md](IMAGE_STORAGE_SETUP.md)** - ImgBB free image hosting
 
-If item is:
+### 🏗️ Technical Documentation
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - App structure and design decisions
+- **[FEATURES.md](FEATURES.md)** - Complete feature documentation
+- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - File organization guide
 
-* Contaminated
-* Broken
-* Non-reusable material
+### 🔧 Configuration & Build
+- **[ANDROID_SETUP.md](ANDROID_SETUP.md)** - Android-specific configuration
+- **[BUILD_DEPLOY.md](BUILD_DEPLOY.md)** - Building and deployment guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
 
-➡️ **Recycle Path**
+### ✅ Development
+- **[CHECKLIST.md](CHECKLIST.md)** - Implementation task list
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
 
-**System shows:**
-
-* Recommended recycling method
-* Suggested recycling centre (static list)
-* Preparation steps (wash, remove label, etc.)
-
-```
-This item cannot be reused.
-Recommended Action: Recycling
-Nearest Centres:
-• KL Recycling Hub
-• Community E-waste Point
-```
-
-✔ Clean
-✔ No overlap with selling or tutorials
+### 🎯 For Competitions
+- **[DEMO_GUIDE.md](DEMO_GUIDE.md)** - How to present the app
+- **[PITCH_POINTS.md](PITCH_POINTS.md)** - Key selling points for judges
 
 ---
 
-### Path B — ✅ Can Be Reused
+## 🎯 What is EcoSnap?
 
-If item is reusable, system unlocks **three sub-options**:
-
----
-
-## ♻️ 3. Reuse Recommendation (Tutorial-Centric)
-
-### Purpose
-
-Help user **transform** the item.
-
-### Shown to user:
-
-* Recommended reuse ideas
-* Difficulty level
-* Tutorial videos
-* Estimated usefulness
-
-Example:
-
-```
-Reuse Ideas:
-1. Plant Pot (Easy)
-2. Desk Organizer (Medium)
-3. Decorative Lamp (Hard)
-
-Tutorials:
-▶ DIY Bottle Planter
-▶ Home Decor from Glass
-```
-
-⚠️ At this stage:
-❌ No selling yet
-❌ No marketplace confusion
-
-Reuse is treated as a **learning & making phase**.
+EcoSnap is a comprehensive waste management solution that combines:
+- 🤖 **AI-Powered Scanning** - On-device classification with TensorFlow Lite
+- ♻️ **Smart Decisions** - Recommends reuse or recycle based on analysis
+- 🛒 **Marketplace** - Buy and sell upcycled items
+- 👥 **Community** - Share ideas and success stories
+- 💬 **Messaging** - Direct chat with buyers/sellers
+- 📊 **Impact Tracking** - See your environmental contribution
 
 ---
 
-## 💰 4. Estimated Market Value (Separated & Clean)
+## ⚡ Quick Start
+```bash
+# 1. Clone the project
+git clone https://github.com/yourusername/ecosnap.git
+cd ecosnap
 
-Only shown **after** reuse ideas are displayed.
+# 2. Install dependencies
+flutter pub get
 
-### AI + Rule-Based Estimation
+# 3. Configure Firebase
+# See FIREBASE_SETUP.md for detailed instructions
 
-Uses:
+# 4. Add ImgBB API key
+# See IMAGE_STORAGE_SETUP.md
 
-* Item type
-* Material
-* Condition
-* Popularity (from marketplace data)
-
-```
-Estimated Market Value After Reuse:
-RM 8 – RM 15
+# 5. Run the app
+flutter run
 ```
 
-This answers your requirement:
-
-> “if can, can give estimated market price”
-
-✔ Clear
-✔ Logical
-✔ Not overlapping with selling UI
+For detailed setup, see **[QUICK_START.md](QUICK_START.md)**
 
 ---
 
-## 🛒 5. Selling Platform (Triggered by User Intent)
+## ✨ Key Features
 
-Selling is **optional** and **user-initiated**.
+### 🤖 AI Scanning
+- On-device TensorFlow Lite classification
+- Identifies material, condition, and reusability
+- Works offline for privacy
 
-### When user clicks:
+### 💡 Smart Recommendations
+- Reuse ideas with difficulty ratings
+- YouTube tutorial integration
+- Market value estimation
+- Recycling center suggestions
 
-> “I want to sell this”
+### 🛒 Marketplace
+- List upcycled products
+- Category filtering
+- Image galleries
+- Direct messaging with sellers
+- Save favorite products
 
-The app opens the **Marketplace Flow**.
+### 👥 Social Features
+- Follow users
+- Search for friends
+- View user profiles
+- See user's posts and products
+- Contribution scoring system
 
----
+### 💬 Real-time Chat
+- Message sellers directly
+- Product sharing in conversations
+- Read receipts
+- Unread indicators
 
-User fill in details:
-
-* Product title
-* Description
-* Category
-* Suggested price
-
-Example:
-
-```
-Title: Handmade Glass Bottle Plant Pot
-Price: RM12
-Category: Upcycled Home Decor
-```
-
-User can edit → publish.
-
----
-
-### Marketplace Features
-
-* Product listings
-* Chat with buyers
-* Save items
-* Eco-only categories
-
-✔ Selling does not collide with reuse
-✔ Reuse can exist without selling
-
----
-
-## 🌍 6. Community Page (Purpose-Clear)
-
-Instead of being “everything mixed”, the community page has **sections**:
-
-### Community Tabs
-
-1️⃣ Reuse Ideas
-2️⃣ Exchange Requests
-3️⃣ Success Stories
-4️⃣ Tutorials & Tips
-
-Users can:
-
-* Post photos
-* Share videos
-* Comment
-* Like & save ideas
+### 📊 Impact Dashboard
+- Items Reused
+- Items Recycled
+- Contribution Score
+- Total Posts
+- Environmental impact tracking
 
 ---
 
-## 🏆 7. Impact & Trust System (Optional but Strong)
+## 🛠️ Tech Stack
 
-### Impact Tracker
+- **Frontend**: Flutter (Dart)
+- **Backend**: Firebase (Auth, Firestore)
+- **AI/ML**: TensorFlow Lite
+- **Image Storage**: ImgBB API (Free!)
+- **State Management**: Provider
+- **Design**: Material Design 3
 
-```
-Items Reused: 14
-Items Recycled: 9
-Items Exchanged: 5
-CO₂ Saved: 8.3kg
-```
-
----
-
-### Trust Badges
-
-* Verified Upcycler
-* Community Helper
-* Eco Seller
-
-This increases safety in selling & exchange.
+**100% Google Tools** - No external AI APIs needed!
 
 ---
 
-## 🧩 8. Final Clean Feature Map (No Collisions)
+## 📱 Screenshots
 
-```
-Scan Item
-  ↓
-AI Analysis
-  ↓
-Decision Path
- ├── Recycle → Centre Suggestion
- └── Reusable
-      ├── Reuse Tutorials
-      ├── Market Price Estimate
-      ├── Sell (Community)
-```
-
-This structure is:
-✔ Logical
-✔ Judge-friendly
-✔ Developer-friendly
+*Add screenshots here or link to a separate SCREENSHOTS.md file*
 
 ---
 
-## 🏁 Improved One-Liner Pitch
+## 🤝 Contributing
 
-> EcoSnap uses on-device AI to analyse waste, recommend the most valuable action—reuse, sell, exchange, or recycle—and connects users through a sustainability-focused community.
+We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
+
+### Areas for Improvement
+- AR preview for reuse ideas
+- Multi-language support
+- Barcode scanning
+- Offline mode
+- Dark theme
+- Advanced search
 
 ---
+
+## 📜 License
+
+This project is created for educational and competition purposes.
+
+---
+
+## 👥 Team
+
+- **Your Name** - Lead Developer
+- **Team Members** - Add your team here
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/ecosnap/issues)
+- **Email**: your.email@example.com
+- **Docs**: Check documentation files listed above
+
+---
+
+## 🏆 Competitions & Awards
+
+*Add your achievements here*
+
+---
+
+## 🙏 Acknowledgments
+
+- Flutter Team
+- Firebase Team
+- TensorFlow Team
+- ImgBB for free image hosting
+- Open Source Community
+
+---
+
+**Built with 💚 for a sustainable future**
