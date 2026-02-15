@@ -197,7 +197,6 @@ Shows:
 - **Like**: Heart icon, counts visible
 - **Save**: Bookmark for later viewing
 - **Comment**: View and add comments
-- **Share**: Share post details
 
 ### Create Post
 - **Text Input**: Multi-line description

@@ -28,28 +28,50 @@ ecosnap_android/
 │   │   │   ├── login_screen.dart
 │   │   │   └── signup_screen.dart
 │   │   └── home/
-│   │       ├── home_screen.dart         # Main navigation
-│   │       ├── scan_screen.dart         # Camera & scanning
-│   │       ├── scan_result_screen.dart  # Classification results
-│   │       ├── reuse_ideas_screen.dart  # Reuse suggestions
-│   │       ├── recycle_info_screen.dart # Recycling centers
-│   │       ├── marketplace_screen.dart  # Buy/sell marketplace
-│   │       ├── community_screen.dart    # Community posts
-│   │       └── profile_screen.dart      # User profile & stats
+│   │       ├── community_screen.dart          # Community posts
+│   │       ├── find_centers_screen.dart       # Find recycling centers 
+│   │       ├── home_screen.dart               # Main navigation
+│   │       ├── marketplace_screen.dart        # Buy/sell marketplace
+│   │       ├── profile_screen.dart            # User profile and settings
+│   │       ├── recycle_info_screen.dart       # Recycling centers
+│   │       ├── reuse_ideas_screen.dart        # Reuse suggestions
+│   │       ├── scan_screen.dart               # Camera & scanning
+│   │       ├── scan_result_screen.dart        # Classification results
+│   │       └── chat/
+│   │       │   ├── chat_list_screen.dart      # List of user conversations
+│   │       │   └── chat_screen.dart           # Individual chat messaging screen
+│   │       └── community/
+│   │       │   ├── create_post_screen.dart    # Create new community post
+│   │       │   └── post_detail_screen.dart    # View post details & comments
+│   │       └── marketplace/
+│   │       │   ├── create_product_screen.dart # Create new marketplace listing
+│   │       │   └── product_detail_screen.dart # View product details & contact seller
+│   │       └── profile/
+│   │       │   ├── edit_profile_screen.dart   # Edit user profile information
+│   │       │   ├── my_listing_screen.dart     # User’s marketplace listings
+│   │       │   ├── saved_posts_screen.dart    # Bookmarked community posts
+│   │       │   ├── saved_products_screen.dart # Bookmarked marketplace products
+│   │       │   └── scan_history_screen.dart   # User scan history
+│   │       └── user/
+│   │           ├── search_users_screen.dart   # Search users by username
+│   │           └── user_profile_screen.dart   # View other user's public profile
 │   ├── services/
 │   │   ├── auth_service.dart       # Firebase Authentication
-│   │   ├── database_service.dart   # Firestore operations
-│   │   └── classifier_service.dart # TensorFlow Lite ML
-│   ├── widgets/
-│   │   └── (reusable UI components)
-│   └── utils/
-│       └── constants.dart          # App constants & theme
+│   │   ├── chat_service.dart       # Real-time chat (Firestore-based)
+│   │   ├── classifier_service.dart # TensorFlow Lite waste classification logic
+│   │   ├── database_service.dart   # Firestore CRUD operations
+│   │   ├── imgbb_service.dart      # Image upload service (ImgBB API)
+│   │   └── user_service.dart       # User profile & user-related operations
+│   ├── utils/
+│   │   └── constants.dart          # App constants, themes, and static values
+│   └── widgets/
+│       └── network_or_file_image.dart # Handles both local file & network images
 ├── assets/
 │   ├── models/
 │   │   ├── waste_classifier.tflite  # TensorFlow Lite model
 │   │   └── labels.txt               # Classification labels
 │   └── images/
-│       └── (app images)
+│       └── app_icon.png (app images)
 ├── android/
 │   └── app/
 │       ├── build.gradle
@@ -57,10 +79,20 @@ ecosnap_android/
 │       └── src/main/AndroidManifest.xml
 ├── ml_model/
 │   ├── train_model.py              # Model training script
-│   └── requirements.txt            # Python dependencies
-├── pubspec.yaml                    # Flutter dependencies
-├── README.md                       # Setup guide
-└── setup.sh                        # Quick setup script
+│   └── requirements.txt            # Python dependencies for ML training
+├── pubspec.yaml            # Flutter dependencies & asset configuration
+├── FEATURES.md             # Complete feature documentation
+├── FIREBASE_SETUP.md       # Firebase configuration guide
+├── IMAGE_STORAGE_SETUP.md  # ImgBB setup guide
+├── INSTALLATION.md         # Detailed installation steps
+├── PROJECT_STRUCTURE.md    # File organization guide
+├── BUILD_DEPLOY.md         # Build and deployment guide
+├── TROUBLESHOOTING.md      # Common issues & solutions
+├── CHANGELOG.md            # Version history
+├── DEMO_GUIDE.md           # Presentation & demo guide
+├── ANDROID_SETUP.md        # Android-specific configuration guide
+├── ARCHITECTURE.md         # System architecture & design explanation
+└── QUICK_START.md          # Quick setup instructions for developers
 ```
 
 ---
@@ -158,14 +190,14 @@ Error:           #DC3545
 ### Model Specifications
 - **Architecture**: Convolutional Neural Network (CNN)
 - **Input Size**: 224x224x3 (RGB image)
-- **Output**: Softmax probabilities for 20 classes
+- **Output**: Softmax probabilities for 9 classes
 - **Format**: TensorFlow Lite (.tflite)
 - **Size**: < 5 MB (optimized for mobile)
 
 ### Classification Labels
 The model classifies waste into:
 1. **Item Type**: Glass Bottle, Plastic Container, etc.
-2. **Material**: Glass, Plastic, Metal, Paper, etc.
+2. **Material**: Glass, Plastic, Paper, etc.
 3. **Condition**: Clean, Damaged, Contaminated, etc.
 
 Format: `ItemType:Material:Condition`
@@ -198,10 +230,8 @@ if (condition == "Contaminated" || condition == "Broken") {
 - Write access only to own folders
 
 ### App Security
-- No API keys hardcoded in source
 - Firebase config in `google-services.json`
 - On-device ML (no data sent to external servers)
-- Email verification recommended for production
 
 ---
 
@@ -233,6 +263,7 @@ if (condition == "Contaminated" || condition == "Broken") {
 - ✅ Category filtering
 - ✅ Product creation (UI ready)
 - ✅ Seller information
+- ✅ Messages
 
 #### Community
 - ✅ Post categories (Reuse, Exchange, Success, Tutorial)
@@ -242,7 +273,7 @@ if (condition == "Contaminated" || condition == "Broken") {
 
 #### Profile
 - ✅ User statistics
-- ✅ Impact tracking (CO₂ saved)
+- ✅ Impact tracking
 - ✅ Badge system
 - ✅ Settings menu
 
@@ -250,10 +281,7 @@ if (condition == "Contaminated" || condition == "Broken") {
 
 #### Short-term
 - [ ] Video tutorials integration (YouTube API)
-- [ ] In-app messaging for marketplace
 - [ ] Push notifications
-- [ ] Image upload for posts/products
-- [ ] Comments on community posts
 
 #### Medium-term
 - [ ] Advanced search & filters
@@ -284,10 +312,9 @@ if (condition == "Contaminated" || condition == "Broken") {
 3. Fix bugs and optimize
 
 ### Production Phase
-1. Google Play Store submission
-2. Staged rollout (10% → 50% → 100%)
-3. Monitor analytics and crashes
-4. Iterative improvements
+1. Staged rollout (10% → 50% → 100%)
+2. Monitor analytics and crashes
+3. Iterative improvements
 
 ---
 
@@ -301,13 +328,13 @@ if (condition == "Contaminated" || condition == "Broken") {
 
 ### Environmental Impact
 - Total items reused
-- Total CO₂ saved
+- Total contributions made
 - Recycling center visits
 - User retention rate
 
 ### Technical Metrics
 - App crash rate < 1%
-- ML model accuracy > 80%
+- ML model accuracy > 70%
 - Average response time < 2s
 - Firebase costs within budget
 
@@ -374,23 +401,6 @@ main (production)
 2. Test on real devices for camera/ML
 3. Monitor Firebase console for errors
 4. Keep dependencies updated
-
-### Common Commands
-```bash
-# Run app
-flutter run
-
-# Build APK
-flutter build apk
-
-# Run tests
-flutter test
-
-# Clean build
-flutter clean
-
-# Get dependencies
-flutter pub get
 ```
 
 ---
@@ -403,26 +413,3 @@ flutter pub get
 - ✅ User experience (clean, intuitive UI)
 - ✅ Social impact (environmental sustainability)
 - ✅ Scalability (Firebase backend)
-
-### Demo Preparation
-1. Pre-loaded test data in Firebase
-2. Sample images for scanning
-3. Smooth navigation flow
-4. Highlight key features:
-   - On-device ML classification
-   - Decision path logic
-   - Community engagement
-   - Impact tracking
-
-### Presentation Points
-- Problem: Waste management and sustainability
-- Solution: AI-powered app for reuse/recycle decisions
-- Tech Stack: 100% Google tools (Flutter + Firebase + TFLite)
-- Impact: Reduce waste, promote circular economy
-- Future: Scale to larger communities, partnerships
-
----
-
-**Last Updated**: 2025
-**Version**: 1.0.0
-**License**: Educational/Competition Use

@@ -29,13 +29,10 @@ This project has comprehensive documentation split into focused files for easy n
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### ✅ Development
-- **[CHECKLIST.md](CHECKLIST.md)** - Implementation task list
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history
 
 ### 🎯 For Competitions
 - **[DEMO_GUIDE.md](DEMO_GUIDE.md)** - How to present the app
-- **[PITCH_POINTS.md](PITCH_POINTS.md)** - Key selling points for judges
 
 ---
 
@@ -125,19 +122,11 @@ For detailed setup, see **[QUICK_START.md](QUICK_START.md)**
 - **State Management**: Provider
 - **Design**: Material Design 3
 
-**100% Google Tools** - No external AI APIs needed!
-
----
-
-## 📱 Screenshots
-
-*Add screenshots here or link to a separate SCREENSHOTS.md file*
-
----
+**100% Google Tools**
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
+We welcome contributions! Please look through CHANGELOG.md for version history
 
 ### Areas for Improvement
 - AR preview for reuse ideas
@@ -146,6 +135,8 @@ We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for 
 - Offline mode
 - Dark theme
 - Advanced search
+- Sharing function
+- Improve AI
 
 ---
 
@@ -157,8 +148,10 @@ This project is created for educational and competition purposes.
 
 ## 👥 Team
 
-- **Your Name** - Lead Developer
-- **Team Members** - Add your team here
+- **Your Name** - Lin Zhi Heng
+- **Team Members** - Chan Jin Xuan
+                   - Thong Poh Yoke
+                   - Vincent
 
 ---
 
@@ -167,14 +160,6 @@ This project is created for educational and competition purposes.
 - **Issues**: [GitHub Issues](https://github.com/yourusername/ecosnap/issues)
 - **Email**: your.email@example.com
 - **Docs**: Check documentation files listed above
-
----
-
-## 🏆 Competitions & Awards
-
-*Add your achievements here*
-
----
 
 ## 🙏 Acknowledgments
 
