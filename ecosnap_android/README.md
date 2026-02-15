@@ -1,512 +1,408 @@
-# 🌱 EcoSnap - Android App Setup Guide
+# ✨ EcoSnap - Complete Feature Documentation
 
 ## 📋 Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [Project Setup](#project-setup)
-3. [Firebase Configuration](#firebase-configuration)
-4. [TensorFlow Lite Model Setup](#tensorflow-lite-model-setup)
-5. [Building the App](#building-the-app)
-6. [Testing](#testing)
-7. [Troubleshooting](#troubleshooting)
+1. [Authentication](#authentication)
+2. [AI Scanning & Classification](#ai-scanning--classification)
+3. [Decision Paths](#decision-paths)
+4. [Marketplace](#marketplace)
+5. [Community Platform](#community-platform)
+6. [Messaging System](#messaging-system)
+7. [User Profiles & Social](#user-profiles--social)
+8. [Impact Tracking](#impact-tracking)
 
 ---
 
-## ✅ Prerequisites
+## 🔐 Authentication
 
-### Required Software
-- **Flutter SDK**: 3.0.0 or higher ([Download](https://flutter.dev/docs/get-started/install))
-- **Android Studio**: Latest version with Android SDK
-- **Java Development Kit (JDK)**: 11 or higher
-- **Git**: For version control
+### Email/Password Authentication
+- **Sign Up**: Create new account with email, password, and display name
+- **Login**: Secure authentication via Firebase
+- **Logout**: Clear session and return to login
+- **Profile Creation**: Automatic user document in Firestore
 
-### Verify Installation
-```bash
-flutter doctor
-```
+### Security Features
+- Password validation (min 6 characters)
+- Email format verification
+- Duplicate email prevention
+- Secure password storage (Firebase handles hashing)
 
----
-
-## 🚀 Project Setup
-
-### 1. Clone the Project
-```bash
-cd ecosnap_android
-```
-
-### 2. Install Dependencies
-```bash
-flutter pub get
-```
-
-### 3. Enable Android Platform
-```bash
-flutter config --enable-android
-```
+### User Experience
+- Auto-navigation after successful signup
+- Remember me functionality
+- Error messages for invalid credentials
+- Loading indicators during authentication
 
 ---
 
-## 🔥 Firebase Configuration
+## 🤖 AI Scanning & Classification
 
-### Step 1: Create Firebase Project
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click "Add Project"
-3. Enter project name: `ecosnap` (or your preferred name)
-4. Disable Google Analytics (optional)
-5. Click "Create Project"
+### Image Input Methods
+1. **Camera Capture**: Real-time photo capture
+2. **Gallery Selection**: Choose existing photos
+3. **Image Preview**: Review before classification
 
-### Step 2: Add Android App to Firebase
-1. In Firebase Console, click "Add App" → Android icon
-2. Enter package name: `com.ecosnap.app`
-3. Download `google-services.json`
-4. Place it in: `android/app/google-services.json`
+### TensorFlow Lite Classification
+- **On-Device Processing**: No data sent to cloud
+- **Model**: Custom-trained CNN
+- **Input Size**: 224x224 RGB images
+- **Output Format**: `ItemType:Material:Condition`
+- **Confidence Score**: Accuracy percentage displayed
 
-### Step 3: Enable Firebase Services
+### Classification Results
+Shows:
+- Item name (e.g., "Glass Bottle")
+- Material type (e.g., "Glass")
+- Condition (e.g., "Clean", "Damaged", "Contaminated")
+- Reusability status
+- Confidence percentage
 
-#### Authentication
-1. Go to Authentication → Get Started
-2. Enable **Email/Password** sign-in method
-
-#### Cloud Firestore
-1. Go to Firestore Database → Create Database
-2. Start in **Test Mode** (for development)
-3. Select region: `asia-southeast1` (Singapore) or closest to Malaysia
-4. Click "Enable"
-
-#### Firestore Security Rules (Initial Setup)
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users collection
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Scan results
-    match /scan_results/{scanId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Products
-    match /products/{productId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.sellerId;
-    }
-    
-    // Community posts
-    match /community_posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-  }
-}
-```
-
-**✨ Important: Image Storage**
-
-We're using **local device storage** for images instead of Firebase Storage to avoid the paid upgrade requirement!
-
-- ✅ **100% Free** - No Firebase Blaze plan needed
-- ✅ **Faster** - No internet upload required  
-- ✅ **Privacy** - Images stay on device
-- ✅ **Works Offline** - Full functionality without internet
-
-See **`LOCAL_STORAGE_GUIDE.md`** for complete details!
+### Scan History
+- Stores all past scans in Firestore
+- Timestamp for each scan
+- Accessible from profile menu
+- Tap to view full scan details
 
 ---
 
-### Step 4: Update Android Configuration
+## 🔄 Decision Paths
 
-#### android/build.gradle
-```gradle
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    
-    dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
-        classpath 'com.google.gms:google-services:4.3.15'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10'
-    }
-}
+### Path A: Reusable Items
+**Triggered when**: Item is clean and in good condition
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-```
+**Shows**:
+1. **Reuse Ideas**
+   - Creative transformation suggestions
+   - Difficulty level (Easy, Medium, Hard)
+   - Step-by-step descriptions
+   - Estimated value after transformation
 
-#### android/app/build.gradle
-```gradle
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
+2. **Tutorial Videos**
+   - YouTube integration
+   - Direct links to DIY tutorials
+   - Copyable URLs as fallback
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
-}
+3. **Market Value**
+   - Estimated price range (RM X - RM Y)
+   - Based on similar marketplace listings
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
+4. **Actions**
+   - "List on Marketplace" button
+   - "Share with Community" button
+   - "Save for Later" option
 
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
+### Path B: Non-Reusable Items
+**Triggered when**: Item is contaminated, broken, or non-reusable
 
-android {
-    namespace "com.ecosnap.app"
-    compileSdkVersion 34
-    ndkVersion flutter.ndkVersion
+**Shows**:
+1. **Recycling Information**
+   - Recommended recycling method
+   - Material-specific instructions
+   - Preparation steps (wash, remove labels, etc.)
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
+2. **Recycling Centers**
+   - Static list for Malaysia
+   - Name, address, contact info
+   - Operating hours
+   - Tap to view on map (placeholder)
 
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
-    defaultConfig {
-        applicationId "com.ecosnap.app"
-        minSdkVersion 21
-        targetSdkVersion 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-        multiDexEnabled true
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-        }
-    }
-}
-
-flutter {
-    source '../..'
-}
-
-dependencies {
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'androidx.multidex:multidex:2.0.1'
-}
-
-apply plugin: 'com.google.gms.google-services'
-```
-
-#### android/app/src/main/AndroidManifest.xml
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    
-    <application
-        android:label="EcoSnap"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
-            <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
-        <meta-data
-            android:name="flutterEmbedding"
-            android:value="2" />
-    </application>
-</manifest>
-```
+3. **Impact Tracking**
+   - "Mark as Recycled" button
+   - Updates user stats
 
 ---
 
-## 🤖 TensorFlow Lite Model Setup
+## 🛒 Marketplace
 
-### Creating a Simple Waste Classification Model
+### Product Listings
 
-Since you need an on-device model without using external AI APIs, you'll need to create or download a TensorFlow Lite model.
+#### Browse Products
+- **Grid Layout**: 2-column product cards
+- **Category Filtering**: 
+  - All
+  - Upcycled Home Decor
+  - Furniture
+  - Garden
+  - Art & Crafts
+  - Storage Solutions
+  - Other
+- **Real-time Updates**: StreamBuilder from Firestore
+- **Image Preview**: First product image shown
 
-### Train Custom Model with TensorFlow
+#### Product Details
+- **Image Gallery**: PageView with indicators (up to 4 images)
+- **Product Info**:
+  - Title
+  - Price (RM)
+  - Category
+  - Condition
+  - Description
+  - Posted date
+- **Seller Info**:
+  - Profile picture
+  - Name (clickable to view profile)
+  - Listed date
+- **Actions**:
+  - "Contact Seller" → Opens chat
+  - "Save Product" bookmark icon
+  - Back navigation
 
-For a production app, you should train a custom model. Here's a basic guide:
+#### Create Product Listing
+- **Form Fields**:
+  - Title (min 5 characters)
+  - Description (min 20 characters)
+  - Price (RM, must be > 0)
+  - Category dropdown
+  - Condition dropdown (New, Like New, Good, Fair, For Parts)
+- **Image Upload**:
+  - Up to 4 images
+  - Upload to ImgBB
+  - Image preview grid
+  - Remove image option
+- **Validation**: Required fields checked before submission
+- **Auto-Stats**: Increments "Items Reused" on creation
 
-#### Step 1: Collect Dataset
-- Gather images of different waste items
-- Categorize them by: item type, material, condition
-- Minimum 100 images per category recommended
+### Saved Products
+- Access from profile menu
+- Lists all bookmarked products
+- Tap to view details
+- Remove from saved list
 
-#### Step 2: Train Model (Python)
-```python
-import tensorflow as tf
-from tensorflow import keras
-import tensorflow_datasets as tfds
-
-# Load your dataset
-# ... (dataset loading code)
-
-# Create model
-model = keras.Sequential([
-    keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(224, 224, 3)),
-    keras.layers.MaxPooling2D(2, 2),
-    keras.layers.Conv2D(64, (3,3), activation='relu'),
-    keras.layers.MaxPooling2D(2, 2),
-    keras.layers.Flatten(),
-    keras.layers.Dense(128, activation='relu'),
-    keras.layers.Dense(num_classes, activation='softmax')
-])
-
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-
-# Train model
-model.fit(train_dataset, epochs=10, validation_data=val_dataset)
-
-# Convert to TensorFlow Lite
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-tflite_model = converter.convert()
-
-# Save
-with open('waste_classifier.tflite', 'wb') as f:
-    f.write(tflite_model)
-```
-
-#### Step 3: Test Model
-```python
-import tensorflow as tf
-import numpy as np
-from PIL import Image
-
-# Load TFLite model
-interpreter = tf.lite.Interpreter(model_path="waste_classifier.tflite")
-interpreter.allocate_tensors()
-
-# Get input and output details
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-# Load and preprocess image
-image = Image.open("test_image.jpg").resize((224, 224))
-input_data = np.array(image, dtype=np.float32) / 255.0
-input_data = np.expand_dims(input_data, axis=0)
-
-# Run inference
-interpreter.set_tensor(input_details[0]['index'], input_data)
-interpreter.invoke()
-output_data = interpreter.get_tensor(output_details[0]['index'])
-
-print("Prediction:", output_data)
-```
+### My Listings
+- View all user's active listings
+- Edit product details
+- Mark as sold/delete
 
 ---
 
-## 🏗️ Building the App
+## 👥 Community Platform
 
-### Development Build
-```bash
-# Run on connected device/emulator
-flutter run
+### Post Categories
+1. **Reuse Ideas**: Creative transformations
+2. **Exchange Requests**: Looking for/offering items
+3. **Success Stories**: Completed projects
+4. **Tutorial**: Step-by-step guides
 
-# Run with hot reload
-flutter run --debug
-```
+### Feed Display
+- **Category Tabs**: Filter by post type
+- **Post Cards** show:
+  - Author profile picture (clickable)
+  - Author name (clickable)
+  - Post content (preview)
+  - Category badge
+  - Like count
+  - Comment count
+  - Post date
 
-### Release Build (APK)
-```bash
-# Build release APK
-flutter build apk --release
+### Post Interactions
+- **Like**: Heart icon, counts visible
+- **Save**: Bookmark for later viewing
+- **Comment**: View and add comments
+- **Share**: Share post details
 
-# Build split APKs (smaller size)
-flutter build apk --split-per-abi
-```
+### Create Post
+- **Text Input**: Multi-line description
+- **Category Selection**: Dropdown menu
+- **Image Upload**: Up to 4 images via ImgBB
+- **Preview**: See images before posting
+- **Auto-Stats**: Increments "Total Posts" on creation
 
-### Release Build (App Bundle for Play Store)
-```bash
-flutter build appbundle --release
-```
+### Post Detail View
+- Full post content
+- All images in gallery
+- Author profile section
+- Like/Save buttons
+- Comment section:
+  - Read all comments
+  - Add new comment
+  - Author profile pictures shown
+- Contribution info tooltip
 
-The output will be in: `build/app/outputs/`
-
----
-
-## 🧪 Testing
-
-### Unit Tests
-```bash
-flutter test
-```
-
-### Integration Tests
-```bash
-flutter drive --target=test_driver/app.dart
-```
-
-### Manual Testing Checklist
-- [ ] User authentication (sign up, login, logout)
-- [ ] Image capture from camera
-- [ ] Image selection from gallery
-- [ ] AI classification accuracy
-- [ ] Firestore data persistence
-- [ ] Marketplace listings
-- [ ] Community posts
-- [ ] Profile statistics
+### Saved Posts
+- Access from profile menu
+- Lists all bookmarked posts
+- Real-time updates
+- Tap to view full post
 
 ---
 
-## 🔧 Troubleshooting
+## 💬 Messaging System
 
-### Common Issues
+### Chat List
+- All conversations displayed
+- Sorted by last message time
+- Shows:
+  - Other user's profile picture
+  - Name
+  - Last message preview
+  - Timestamp
+  - Unread indicator (green dot)
+  - Unread count badge
 
-#### 1. Firebase Not Initialized
-**Error**: `[core/no-app] No Firebase App '[DEFAULT]' has been created`
+### Individual Chat
+- **Header**:
+  - Other user's profile picture (tap to view profile)
+  - Name
+- **Messages**:
+  - Sender's profile picture (for received)
+  - Message bubbles (green for sent, gray for received)
+  - Timestamp
+  - Read status ("Seen 5m ago", "Just now", etc.)
+  - Product card if shared
+- **Input**:
+  - Text field
+  - Send button
+  - Emoji support
 
-**Solution**: Ensure `google-services.json` is in `android/app/` and Firebase is initialized in `main.dart`
+### Product Sharing
+- Automatically sends product card when contacting seller
+- Shows:
+  - Product image
+  - Title
+  - Price
+  - Tappable card (future: link to product)
 
-#### 2. TFLite Model Not Loading
-**Error**: `Unable to load asset: assets/models/waste_classifier.tflite`
+### Real-time Features
+- Instant message delivery
+- Read receipts with timestamps
+- Typing indicators (future enhancement)
+- Message notifications
 
-**Solution**: 
-- Verify model file exists in `assets/models/`
-- Check `pubspec.yaml` has correct asset paths
-- Run `flutter clean` and `flutter pub get`
-
-#### 3. Camera Permission Denied
-**Error**: Camera not accessible
-
-**Solution**: Add permissions to `AndroidManifest.xml` and request at runtime
-
-#### 4. Build Failed - Gradle Issues
-**Error**: Gradle build failures
-
-**Solution**:
-```bash
-cd android
-./gradlew clean
-cd ..
-flutter clean
-flutter pub get
-flutter run
-```
-
-#### 5. Out of Memory Error
-**Error**: `OutOfMemoryError` during build
-
-**Solution**: Add to `android/gradle.properties`:
-```
-org.gradle.jvmargs=-Xmx4096m -XX:MaxPermSize=512m
-```
-
----
-
-## 📱 App Features Overview
-
-### ✅ Implemented Features
-- User authentication (email/password)
-- Camera integration for item scanning
-- On-device AI classification (TensorFlow Lite)
-- Scan history with Firebase
-- Reuse ideas based on item type
-- Market value estimation
-- Recycling center suggestions
-- Marketplace for selling upcycled items
-- Community posts and engagement
-- User impact tracking
-- Real-time user messaging
-- Community networking & collaboration
-
-### 🎨 UI/UX
-- Clean green and white theme
-- Material Design 3
-- Intuitive navigation
-- Responsive layouts
+### Unread Badges
+- Red dot on marketplace message icon
+- Shows count (1-9+)
+- Updates in real-time
+- Disappears after reading messages
 
 ---
 
-## 📦 Deployment
+## 👤 User Profiles & Social
 
-### Google Play Store
+### View User Profiles
+**Access from**:
+- Tap username in community posts
+- Tap seller name in marketplace
+- Tap avatar in chat list
+- Search users feature
 
-1. **Prepare Release**
-   - Update version in `pubspec.yaml`
-   - Test thoroughly
-   - Build app bundle
+**Profile Shows**:
+1. **Header Section**:
+   - Large profile picture
+   - Display name
+   - Bio (if set)
+   - Followers/Following count
 
-2. **Create Play Console Account**
-   - Go to [Google Play Console](https://play.google.com/console)
-   - Pay one-time fee ($25 USD)
+2. **Impact Stats**:
+   - Items Reused
+   - Items Recycled
+   - Contribution Score
+   - Total Posts
 
-3. **Create App Listing**
-   - Upload screenshots
-   - Write description
-   - Add privacy policy
+3. **Action Buttons** (for other users):
+   - "Follow" / "Following" button
+   - "Message" button
 
-4. **Upload APK/Bundle**
-   ```bash
-   flutter build appbundle --release
-   ```
+4. **Content Tabs**:
+   - Community Posts: All posts by user
+   - Products: All marketplace listings
 
-5. **Submit for Review**
+### Own Profile
+- View personal stats
+- Access profile settings
+- See scan history
+- View saved items
+- View my listings
+
+### Edit Profile
+- Update display name
+- Add/change profile picture (ImgBB upload)
+- Write bio (max 150 characters)
+- Email shown (read-only)
+- Save changes with validation
+
+### Search Users
+- Search icon on home screen (top-left)
+- Search by:
+  - Display name (partial match)
+  - Email (partial match)
+- Results show:
+  - Profile picture
+  - Name
+  - Bio preview
+- Tap to view full profile
+
+### Follow System
+- Follow/Unfollow button on profiles
+- Followers list (count shown)
+- Following list (count shown)
+- Updates user document in Firestore
+- Real-time count updates
+
+### Contribution Score
+**How it works**:
+- Every 10 community post likes + saves = 1 contribution point
+- Example: 6 likes + 4 saves = 10 total = 1 contribution
+- Automatically calculated
+- Displayed on profile
+- Encourages quality content
 
 ---
 
-## 🤝 Contributing
+## 📊 Impact Tracking
 
-This is a hackathon/competition project. Features to add:
-- Advanced search and filters
-- Push notifications
-- Offline mode
-- Multi-language support
+### User Statistics
+
+#### Items Reused
+- **Counts**: Marketplace products created
+- **Increment**: When user lists a product
+- **Display**: Profile dashboard
+
+#### Items Recycled
+- **Counts**: Recycling center interactions
+- **Increment**: When user taps "Find Centers"
+- **Display**: Profile dashboard
+
+#### Contribution Score
+- **Counts**: (Total likes + saves on posts) ÷ 10
+- **Increment**: Auto-calculated from community engagement
+- **Display**: Profile dashboard
+- **Purpose**: Reward helpful content creators
+
+#### Total Posts
+- **Counts**: Community posts created
+- **Increment**: When user creates a post
+- **Display**: Profile dashboard
+
+### Impact Dashboard
+- Located on profile screen
+- Visual cards for each metric
+- Green eco-themed design
+- Icons for each category:
+  - ♻️ Recycling icon for Items Reused
+  - 🗑️ Delete icon for Recycled
+  - 🤝 Volunteer icon for Contribution
+  - 📝 Post icon for Total Posts
+
+### Future Enhancements
+- CO₂ savings calculation
+- Weekly/monthly progress
+- Achievement badges
+- Leaderboards
+- Personal goals
 
 ---
 
-## 📄 License
+## 🎯 Summary
 
-This project is created for educational and competition purposes.
+EcoSnap provides a complete ecosystem for sustainable waste management:
+
+1. **Scan** → AI identifies items
+2. **Decide** → Reuse or recycle path
+3. **Act** → List, share, or recycle
+4. **Connect** → Message, follow, engage
+5. **Track** → See your impact
+
+All features work together to create a circular economy community focused on reducing waste and promoting sustainability.
 
 ---
 
-## 📞 Support
-
-For issues or questions, refer to:
-- [Flutter Documentation](https://docs.flutter.dev/)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [TensorFlow Lite Guide](https://www.tensorflow.org/lite/guide)
-
----
-
-**Built with ❤️ using Google tools**
+**For technical implementation details, see [ARCHITECTURE.md](ARCHITECTURE.md)**
