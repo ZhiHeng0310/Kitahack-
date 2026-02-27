@@ -151,7 +151,7 @@ This project is created for educational and competition purposes.
 - **Your Name** - Lin Zhi Heng
 - **Team Members** - Chan Jin Xuan
                    - Thong Poh Yoke
-                   - Vincent
+                   - Yap Vincent
 
 ---
 
